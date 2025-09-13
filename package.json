@@ -8,13 +8,18 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "examples:rest": "npm run build && node dist/examples/private-rest.js",
-    "examples:ws": "npm run build && node dist/examples/private-ws.js"
+    "examples:ws": "npm run build && node dist/examples/private-ws.js",
+    "start:service": "npm run build && node dist/service/server.js"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
-    "ws": "^8.17.1"
+    "dotenv": "^16.4.5",
+    "fastify": "^4.28.1",
+    "pino": "^9.4.0",
+    "ws": "^8.17.1",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^22.5.5",

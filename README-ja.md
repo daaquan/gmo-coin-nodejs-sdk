@@ -92,3 +92,21 @@ RESTサンプルでの注文について
 - スピード注文（SPEED／成行相当）を発注してすぐキャンセルするには:
   - `FX_API_KEY=... FX_API_SECRET=... PLACE_SPEED=1 ORDER_SYMBOL=USD_JPY ORDER_SIDE=BUY ORDER_SIZE=1000 npm run examples:rest`
   - 保護価格（upperBound/lowerBound）は例では未指定です。必要ならコードに追加してください。
+
+マイクロサービスとしての利用
+- 起動手順:
+  - `cp .env.example .env` を作成し、`FX_API_KEY`, `FX_API_SECRET`（任意で `SERVICE_AUTH_TOKEN`）を設定
+  - `npm run start:service`
+- エンドポイント（ローカルサービス）:
+  - `GET /health`
+  - `GET /v1/account/assets`
+  - `GET /v1/orders/active?symbol=USD_JPY&count=50`
+  - `POST /v1/orders/limit` 本文 `{ symbol, side, size, limitPrice, clientOrderId?, expireDate?, settleType? }`
+  - `POST /v1/orders/speed` 本文 `{ symbol, side, size, clientOrderId?, upperBound?, lowerBound?, isHedgeable? }`
+  - `POST /v1/orders/cancel` 本文 `{ rootOrderIds: number[] }`
+  - `GET /v1/positions/open`
+  - `GET /v1/positions/summary`
+  - `GET /v1/stream?topics=execution,order&symbol=USD_JPY`（SSE）
+- 認証: `SERVICE_AUTH_TOKEN` を設定した場合、`Authorization: Bearer <token>` を付与してください。TODO: 本番ではJWT/mTLSへ置換。
+- レート制限: 現状はプロセス内のみ。TODO: Redisベースの分散レート制限に置換。
+- 冪等: POST注文で `Idempotency-Key` ヘッダに対応（メモリ保持）。TODO: Redisへ永続化。

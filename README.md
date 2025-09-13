@@ -92,3 +92,21 @@ Placing Orders in the REST Example
 - To place and then cancel a SPEED order (market-like):
   - `FX_API_KEY=... FX_API_SECRET=... PLACE_SPEED=1 ORDER_SYMBOL=USD_JPY ORDER_SIDE=BUY ORDER_SIZE=1000 npm run examples:rest`
   - Optional protective bounds: `upperBound`/`lowerBound` are not set in the example; add them in code if needed.
+
+Microservice Usage
+- Start the service:
+  - `cp .env.example .env` and fill `FX_API_KEY`, `FX_API_SECRET` (and optional `SERVICE_AUTH_TOKEN`).
+  - `npm run start:service`
+- Endpoints (local service):
+  - `GET /health`
+  - `GET /v1/account/assets`
+  - `GET /v1/orders/active?symbol=USD_JPY&count=50`
+  - `POST /v1/orders/limit` body `{ symbol, side, size, limitPrice, clientOrderId?, expireDate?, settleType? }`
+  - `POST /v1/orders/speed` body `{ symbol, side, size, clientOrderId?, upperBound?, lowerBound?, isHedgeable? }`
+  - `POST /v1/orders/cancel` body `{ rootOrderIds: number[] }`
+  - `GET /v1/positions/open`
+  - `GET /v1/positions/summary`
+  - `GET /v1/stream?topics=execution,order&symbol=USD_JPY` (SSE)
+- Auth: If `SERVICE_AUTH_TOKEN` is set, include `Authorization: Bearer <token>` in requests. TODO: Replace with JWT/mTLS in production.
+- Rate limiting: In-process only for now. TODO: Replace with Redis-based distributed limiter.
+- Idempotency: `Idempotency-Key` header supported on POST orders (in-memory). TODO: Persist in Redis.
