@@ -1,19 +1,34 @@
-// In-memory idempotency cache with TTL. TODO: replace with Redis for horizontal scale.
+// Idempotency cache with Redis fallback to in-memory.
+import { getRedis, ensureRedisConnected } from './redis.js';
+
 type Entry = { status: number; body: any; createdAt: number; ttlMs: number };
 const store = new Map<string, Entry>();
 
-export function getIdempotent(key?: string) {
+export async function getIdempotent(key?: string): Promise<Entry | undefined> {
   if (!key) return undefined;
-  const e = store.get(key);
-  if (!e) return undefined;
-  if (Date.now() - e.createdAt > e.ttlMs) {
-    store.delete(key);
-    return undefined;
+  const r = getRedis();
+  if (!r) {
+    const e = store.get(key);
+    if (!e) return undefined;
+    if (Date.now() - e.createdAt > e.ttlMs) {
+      store.delete(key);
+      return undefined;
+    }
+    return e;
   }
-  return e;
+  await ensureRedisConnected();
+  const raw = await r.get(`idem:${key}`);
+  if (!raw) return undefined;
+  try { return JSON.parse(raw) as Entry; } catch { return undefined; }
 }
 
-export function setIdempotent(key: string, status: number, body: any, ttlMs = 10 * 60 * 1000) {
-  store.set(key, { status, body, createdAt: Date.now(), ttlMs });
+export async function setIdempotent(key: string, status: number, body: any, ttlMs = 10 * 60 * 1000) {
+  const entry: Entry = { status, body, createdAt: Date.now(), ttlMs };
+  const r = getRedis();
+  if (!r) {
+    store.set(key, entry);
+    return;
+  }
+  await ensureRedisConnected();
+  await r.set(`idem:${key}`, JSON.stringify(entry), 'PX', ttlMs);
 }
-

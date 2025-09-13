@@ -108,5 +108,6 @@ Microservice Usage
   - `GET /v1/positions/summary`
   - `GET /v1/stream?topics=execution,order&symbol=USD_JPY` (SSE)
 - Auth: If `SERVICE_AUTH_TOKEN` is set, include `Authorization: Bearer <token>` in requests. TODO: Replace with JWT/mTLS in production.
-- Rate limiting: In-process only for now. TODO: Replace with Redis-based distributed limiter.
-- Idempotency: `Idempotency-Key` header supported on POST orders (in-memory). TODO: Persist in Redis.
+- Auth via JWT (JWKS): set `SERVICE_AUTH_MODE=jwt`, `JWKS_URL`, and optional `JWT_ISSUER`/`JWT_AUDIENCE`.
+- Rate limiting: If `REDIS_URL` is set, uses Redis fixed-window limiter (GET 6/s, POST 1/s, WS 1/s). Falls back to in-process.
+- Idempotency: If `REDIS_URL` is set, uses Redis for `Idempotency-Key` storage; otherwise in-memory.

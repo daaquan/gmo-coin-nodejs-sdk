@@ -107,6 +107,7 @@ RESTサンプルでの注文について
   - `GET /v1/positions/open`
   - `GET /v1/positions/summary`
   - `GET /v1/stream?topics=execution,order&symbol=USD_JPY`（SSE）
-- 認証: `SERVICE_AUTH_TOKEN` を設定した場合、`Authorization: Bearer <token>` を付与してください。TODO: 本番ではJWT/mTLSへ置換。
-- レート制限: 現状はプロセス内のみ。TODO: Redisベースの分散レート制限に置換。
-- 冪等: POST注文で `Idempotency-Key` ヘッダに対応（メモリ保持）。TODO: Redisへ永続化。
+- 認証: `SERVICE_AUTH_TOKEN` を設定した場合、`Authorization: Bearer <token>` を付与。
+- JWT（JWKS）認証: `SERVICE_AUTH_MODE=jwt` と `JWKS_URL`（必要に応じて `JWT_ISSUER`/`JWT_AUDIENCE`）を設定。
+- レート制限: `REDIS_URL` を設定すると Redis の固定ウィンドウ制限（GET 6/s, POST 1/s, WS 1/s）を使用。未設定時はプロセス内制限。
+- 冪等: `REDIS_URL` 設定時は Redis に `Idempotency-Key` を保存。未設定時はメモリ保持。
