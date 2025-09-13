@@ -6,6 +6,7 @@ import { registerOrderRoutes } from './routes/orders.js';
 import { registerPositionRoutes } from './routes/positions.js';
 import { registerStreamRoutes } from './routes/stream.js';
 import { serviceAuthHook } from './lib/auth.js';
+import { registerMetricsRoute } from './routes/metrics.js';
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ registerAccountRoutes(app);
 registerOrderRoutes(app);
 registerPositionRoutes(app);
 registerStreamRoutes(app);
+registerMetricsRoute(app);
 
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || '0.0.0.0';
@@ -34,4 +36,3 @@ app
     app.log.error(err, 'failed to start');
     process.exit(1);
   });
-

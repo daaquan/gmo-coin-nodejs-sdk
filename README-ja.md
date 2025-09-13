@@ -107,7 +107,10 @@ RESTサンプルでの注文について
   - `GET /v1/positions/open`
   - `GET /v1/positions/summary`
   - `GET /v1/stream?topics=execution,order&symbol=USD_JPY`（SSE）
+  - `GET /metrics`（Prometheus 形式）
 - 認証: `SERVICE_AUTH_TOKEN` を設定した場合、`Authorization: Bearer <token>` を付与。
 - JWT（JWKS）認証: `SERVICE_AUTH_MODE=jwt` と `JWKS_URL`（必要に応じて `JWT_ISSUER`/`JWT_AUDIENCE`）を設定。
 - レート制限: `REDIS_URL` を設定すると Redis の固定ウィンドウ制限（GET 6/s, POST 1/s, WS 1/s）を使用。未設定時はプロセス内制限。
 - 冪等: `REDIS_URL` 設定時は Redis に `Idempotency-Key` を保存。未設定時はメモリ保持。
+ - マルチテナント: `X-Tenant-Id` ヘッダ または `?tenant=...` でテナントを指定。`FX_API_KEY__<TENANT>` / `FX_API_SECRET__<TENANT>` が使われ、なければベースの環境変数を使用。
+ - OpenAPI: サービスAPIの概要は `openapi.yaml` を参照。

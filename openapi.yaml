@@ -1,0 +1,111 @@
+openapi: 3.0.3
+info:
+  title: FX Private API Microservice
+  version: 0.1.0
+servers:
+  - url: http://localhost:3000
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200': { description: OK }
+  /v1/account/assets:
+    get:
+      summary: Get account assets
+      responses:
+        '200': { description: Success }
+  /v1/orders/active:
+    get:
+      summary: Get active orders
+      parameters:
+        - in: query
+          name: symbol
+          schema: { type: string }
+        - in: query
+          name: count
+          schema: { type: string }
+        - in: query
+          name: prevId
+          schema: { type: string }
+      responses:
+        '200': { description: Success }
+  /v1/orders/limit:
+    post:
+      summary: Place LIMIT order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [symbol, side, size, limitPrice]
+              properties:
+                symbol: { type: string }
+                side: { type: string, enum: [BUY, SELL] }
+                size: { type: string }
+                limitPrice: { type: string }
+                clientOrderId: { type: string }
+                expireDate: { type: string }
+                settleType: { type: string, enum: [OPEN, CLOSE] }
+      responses:
+        '200': { description: Success }
+  /v1/orders/speed:
+    post:
+      summary: Place SPEED order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [symbol, side, size]
+              properties:
+                symbol: { type: string }
+                side: { type: string, enum: [BUY, SELL] }
+                size: { type: string }
+                clientOrderId: { type: string }
+                upperBound: { type: string }
+                lowerBound: { type: string }
+                isHedgeable: { type: boolean }
+      responses:
+        '200': { description: Success }
+  /v1/orders/cancel:
+    post:
+      summary: Cancel orders by rootOrderIds
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rootOrderIds]
+              properties:
+                rootOrderIds:
+                  type: array
+                  items: { type: integer }
+      responses:
+        '200': { description: Success }
+  /v1/positions/open:
+    get:
+      summary: Get open positions
+      responses:
+        '200': { description: Success }
+  /v1/positions/summary:
+    get:
+      summary: Get position summary
+      responses:
+        '200': { description: Success }
+  /v1/stream:
+    get:
+      summary: SSE stream bridging GMO Private WS
+      parameters:
+        - in: query
+          name: topics
+          schema: { type: string }
+        - in: query
+          name: symbol
+          schema: { type: string }
+      responses:
+        '200': { description: text/event-stream }
+

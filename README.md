@@ -107,7 +107,10 @@ Microservice Usage
   - `GET /v1/positions/open`
   - `GET /v1/positions/summary`
   - `GET /v1/stream?topics=execution,order&symbol=USD_JPY` (SSE)
+  - `GET /metrics` (Prometheus exposition)
 - Auth: If `SERVICE_AUTH_TOKEN` is set, include `Authorization: Bearer <token>` in requests. TODO: Replace with JWT/mTLS in production.
 - Auth via JWT (JWKS): set `SERVICE_AUTH_MODE=jwt`, `JWKS_URL`, and optional `JWT_ISSUER`/`JWT_AUDIENCE`.
 - Rate limiting: If `REDIS_URL` is set, uses Redis fixed-window limiter (GET 6/s, POST 1/s, WS 1/s). Falls back to in-process.
 - Idempotency: If `REDIS_URL` is set, uses Redis for `Idempotency-Key` storage; otherwise in-memory.
+ - Multi-tenant: Supply `X-Tenant-Id` header or `?tenant=...` to pick creds from `FX_API_KEY__<TENANT>` / `FX_API_SECRET__<TENANT>`; falls back to base.
+ - OpenAPI: See `openapi.yaml` for a high-level spec of the service API.
