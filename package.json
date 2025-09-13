@@ -1,0 +1,24 @@
+{
+  "name": "fx-sdk",
+  "version": "0.1.0",
+  "description": "GMO Coin Forex (FX) Private API SDK (Node.js/TypeScript)",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "examples:rest": "npm run build && node dist/examples/private-rest.js",
+    "examples:ws": "npm run build && node dist/examples/private-ws.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.17.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.5",
+    "@types/ws": "^8.5.12",
+    "typescript": "^5.6.2"
+  }
+}
