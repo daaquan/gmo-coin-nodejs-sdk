@@ -29,7 +29,7 @@ export class FxPrivateWsAuth {
     const res = await fetch(this.restBase + path, { method, headers, body: payload });
     let json: any; try { json = await res.json(); } catch { json = undefined; }
     if (!res.ok || json?.status !== 0) throw new Error(`${method} ${path} failed: ${res.status} ${JSON.stringify(json)}`);
-    return json as { status: number; data: { token: string; expireAt: string } };
+    return json as { status: number; data: string; responsetime: string };
   }
 
   create() { return this.call('POST'); }

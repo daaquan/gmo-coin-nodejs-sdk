@@ -12,6 +12,6 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["src", "examples"],
+  "include": ["src", "examples", "service"],
   "exclude": ["node_modules", "dist"]
 }

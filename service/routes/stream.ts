@@ -9,8 +9,10 @@ const Env = z.object({ FX_API_KEY: z.string().optional(), FX_API_SECRET: z.strin
 export function registerStreamRoutes(app: FastifyInstance) {
   // Simple SSE bridge from Private WS to clients
   app.get('/v1/stream', async (req, reply) => {
+    console.log('Stream: route called');
     const env = Env.parse(process.env);
     await gmoWsGate();
+    console.log('Stream: after gmoWsGate');
 
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -20,7 +22,9 @@ export function registerStreamRoutes(app: FastifyInstance) {
     });
 
     const tenant = tenantFromReq((req as any).headers, (req as any).query);
+    console.log('Stream: tenant =', tenant);
     const { apiKey, secret } = getCreds(tenant);
+    console.log('Stream: apiKey =', apiKey ? '***' : 'undefined', 'secret =', secret ? '***' : 'undefined');
     const auth = new FxPrivateWsAuth(apiKey, secret);
     let closed = false;
     let extendTimer: NodeJS.Timeout | undefined;
@@ -31,12 +35,18 @@ export function registerStreamRoutes(app: FastifyInstance) {
     };
 
     try {
+      console.log('Stream: attempting to create token...');
       const tokenResp = await auth.create();
-      let token = tokenResp.data.token;
+      console.log('Stream: tokenResp =', tokenResp);
+      // APIレスポンスでは data が直接トークン文字列
+      let token = tokenResp.data;
+      console.log('Stream: token =', token ? '***' : 'undefined');
+      console.log('Stream: creating WebSocket client...');
       const ws = new FxPrivateWsClient(token);
 
       // Arrange auto-extend before expiry if expireAt present
-      const expireAt = tokenResp?.data?.expireAt ? Date.parse(tokenResp.data.expireAt) : undefined;
+      // Note: 現在のAPIレスポンスでは expireAt が含まれていないため、この機能は無効
+      const expireAt = undefined; // tokenResp?.data?.expireAt ? Date.parse(tokenResp.data.expireAt) : undefined;
       if (expireAt && !Number.isNaN(expireAt)) {
         const earlyMs = 30_000; // extend 30s early
         const delay = Math.max(1_000, expireAt - Date.now() - earlyMs);
@@ -89,6 +99,7 @@ export function registerStreamRoutes(app: FastifyInstance) {
         try { await auth.revoke(token); } catch {}
       });
     } catch (e: any) {
+      console.error('Stream: error occurred:', e);
       send('error', { error: 'stream_failed', detail: e?.message || String(e) });
       reply.raw.end();
     }

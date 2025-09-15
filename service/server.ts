@@ -7,11 +7,12 @@ import { registerPositionRoutes } from './routes/positions.js';
 import { registerStreamRoutes } from './routes/stream.js';
 import { serviceAuthHook } from './lib/auth.js';
 import { registerMetricsRoute } from './routes/metrics.js';
+import { registerWsAuthRoutes } from './routes/ws-auth.js';
 
 dotenv.config();
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
-const app = Fastify({ logger });
+const app = Fastify({ logger: logger as any });
 
 // Simple service-level auth (optional). TODO: replace with JWT/mTLS in production
 app.addHook('onRequest', serviceAuthHook);
@@ -25,6 +26,7 @@ registerOrderRoutes(app);
 registerPositionRoutes(app);
 registerStreamRoutes(app);
 registerMetricsRoute(app);
+registerWsAuthRoutes(app);
 
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || '0.0.0.0';

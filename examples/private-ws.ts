@@ -17,7 +17,7 @@ const auth = new FxPrivateWsAuth(apiKey, secret);
     let token = process.env.WS_TOKEN;
     if (!token) {
       const tokenResp = await auth.create();
-      token = tokenResp?.data?.token;
+      token = tokenResp?.data;
       if (!token) {
         console.error('Failed to obtain WS token. Check that your API key/secret are correct and the client IP is allowlisted in GMO Coin settings.');
         console.error('Response:', tokenResp);
