@@ -12,7 +12,7 @@ import { registerWsAuthRoutes } from './routes/ws-auth.js';
 dotenv.config();
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
-const app = Fastify({ logger: logger as any });
+const app = Fastify({ logger });
 
 // Simple service-level auth (optional). TODO: replace with JWT/mTLS in production
 app.addHook('onRequest', serviceAuthHook);

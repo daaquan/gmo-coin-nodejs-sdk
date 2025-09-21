@@ -40,9 +40,26 @@ export interface ActiveOrder {
   timestamp: string;
 }
 
+export interface Execution {
+  executionId: string;
+  orderId: string;
+  symbol: string;
+  side: Side;
+  price: string;
+  size: string;
+  timestamp: string;
+}
+
+export interface PositionSummary {
+  symbol: string;
+  side: Side;
+  size: string;
+  price: string;
+}
+
 export type ActiveOrdersResp = ApiEnvelope<ActiveOrder[]>;
-export type ExecutionsResp = ApiEnvelope<any[]>;
-export type LatestExecsResp = ApiEnvelope<any[]>;
+export type ExecutionsResp = ApiEnvelope<Execution[]>;
+export type LatestExecsResp = ApiEnvelope<Execution[]>;
 
 /** Positions */
 export interface OpenPosition {
@@ -53,7 +70,7 @@ export interface OpenPosition {
   price: string;
 }
 export type OpenPositionsResp = ApiEnvelope<OpenPosition[]>;
-export type PositionSummaryResp = ApiEnvelope<any[]>;
+export type PositionSummaryResp = ApiEnvelope<PositionSummary[]>;
 
 /** Place orders */
 export interface OrderReq {
@@ -143,7 +160,7 @@ export interface CancelBulkReq {
   side?: Side;
   settleType?: SettleType;
 }
-export type CancelBulkResp = ApiEnvelope<any>;
+export type CancelBulkResp = ApiEnvelope<null>;
 
 export interface CloseOrderReq {
   symbol: string;
@@ -157,5 +174,5 @@ export interface CloseOrderReq {
 export type CloseOrderResp = ApiEnvelope<ActiveOrder[]>;
 
 /** WS auth lifecycle */
-export interface CreateWsTokenResp extends ApiEnvelope<{ token: string; expireAt: string }> {}
+export type CreateWsTokenResp = ApiEnvelope<{ token: string; expireAt: string }>;
 

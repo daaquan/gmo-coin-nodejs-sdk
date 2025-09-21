@@ -18,7 +18,7 @@ export function getCreds(tenantId?: string): Creds {
   return { apiKey: base.FX_API_KEY, secret: base.FX_API_SECRET } as Creds;
 }
 
-export function tenantFromReq(headers: Record<string, any>, query?: any): string | undefined {
+export function tenantFromReq(headers: Record<string, string | string[] | undefined>, query?: Record<string, string | string[] | undefined>): string | undefined {
   return (headers['x-tenant-id'] as string | undefined) || (query?.tenant as string | undefined);
 }
 

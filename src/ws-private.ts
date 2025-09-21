@@ -23,11 +23,11 @@ export class FxPrivateWsAuth {
     }
   }
 
-  private async call(method: 'POST' | 'PUT' | 'DELETE', path = '/v1/ws-auth', body?: any) {
+  private async call(method: 'POST' | 'PUT' | 'DELETE', path = '/v1/ws-auth', body?: { token?: string }) {
     const payload = body ? JSON.stringify(body) : JSON.stringify({});
     const headers = buildHeaders(this.apiKey, this.secret, method, path, payload);
     const res = await fetch(this.restBase + path, { method, headers, body: payload });
-    let json: any; try { json = await res.json(); } catch { json = undefined; }
+    let json: Record<string, unknown> | undefined; try { json = await res.json(); } catch { json = undefined; }
     if (!res.ok || json?.status !== 0) throw new Error(`${method} ${path} failed: ${res.status} ${JSON.stringify(json)}`);
     return json as { status: number; data: string; responsetime: string };
   }
@@ -57,22 +57,22 @@ export class FxPrivateWsClient {
     });
   }
 
-  onMessage(fn: (msg: any) => void) {
+  onMessage(fn: (msg: unknown) => void) {
     this.ws?.on('message', (raw: WebSocket.RawData) => {
-      try { fn(JSON.parse(raw.toString())); } catch {}
+      try { fn(JSON.parse(raw.toString())); } catch { /* ignore parse errors */ }
     });
   }
 
   async subscribe(topic: 'execution' | 'order' | 'position' | 'positionSummary', symbol?: string) {
     await wsGate.wait();
-    const payload: any = { command: 'subscribe', channel: topic };
+    const payload: { command: string; channel: string; symbol?: string } = { command: 'subscribe', channel: topic };
     if (symbol) payload.symbol = symbol;
     this.ws?.send(JSON.stringify(payload));
   }
 
   async unsubscribe(topic: 'execution' | 'order' | 'position' | 'positionSummary', symbol?: string) {
     await wsGate.wait();
-    const payload: any = { command: 'unsubscribe', channel: topic };
+    const payload: { command: string; channel: string; symbol?: string } = { command: 'unsubscribe', channel: topic };
     if (symbol) payload.symbol = symbol;
     this.ws?.send(JSON.stringify(payload));
   }

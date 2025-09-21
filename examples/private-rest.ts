@@ -2,6 +2,7 @@
  * Show: assets, active orders, place + cancel a LIMIT order.
  */
 import { FxPrivateRestClient } from '../src/rest.js';
+import type { ActiveOrder } from '../src/types.js';
 
 const apiKey = process.env.FX_API_KEY;
 const secret = process.env.FX_API_SECRET;
@@ -58,10 +59,10 @@ const fx = new FxPrivateRestClient(apiKey, secret);
 
     // 3) List active orders (robust to different shapes)
     const active = await fx.getActiveOrders({ symbol, count: '10' });
-    const aData: any = (active as any)?.data;
-    const list: any[] = Array.isArray(aData)
+    const aData: ActiveOrder[] | { list?: ActiveOrder[] } = active.data;
+    const list: ActiveOrder[] = Array.isArray(aData)
       ? aData
-      : (Array.isArray(aData?.list) ? aData.list : []);
+      : ((aData as { list?: ActiveOrder[] })?.list ?? []);
     console.log('Active orders (first 3):', list.slice(0, 3));
   } catch (e) {
     console.error(e);

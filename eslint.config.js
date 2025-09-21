@@ -26,9 +26,24 @@ export default [
       // 基本的なルール
       'no-console': 'warn',
       'no-unused-vars': 'off', // TypeScriptでチェックされるため
-      '@typescript-eslint/no-unused-vars': 'error',
+      // 先頭がアンダースコアの引数は無視（Fastifyのハンドラ等で未使用の引数があるため）
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
+    },
+  },
+  // examples 内は学習・実行例のため console を許可
+  {
+    files: ['examples/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  // ストリームのデバッグログは運用上有用なため許可
+  {
+    files: ['service/routes/stream.ts'],
+    rules: {
+      'no-console': 'off',
     },
   },
 ];

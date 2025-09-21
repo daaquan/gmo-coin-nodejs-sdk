@@ -2,6 +2,16 @@ import { buildHeaders } from './auth.js';
 import { getGate, postGate } from './rateLimiter.js';
 import type * as T from './types.js';
 
+interface ErrorResponse {
+  status?: number;
+  code?: string;
+  message?: string;
+  data?: {
+    code?: string;
+    message?: string;
+  };
+}
+
 const BASE = 'https://forex-api.coin.z.com/private';
 const V = '/v1';
 
@@ -12,15 +22,16 @@ function ensureExecFields(execType: T.ExecType, body: { limitPrice?: string; sto
 }
 
 async function parseJson(res: Response) {
-  let json: any;
+  let json: Record<string, unknown> | undefined;
   try { json = await res.json(); } catch { json = undefined; }
   return json;
 }
 
-function errText(method: string, path: string, res: Response, json: any) {
+function errText(method: string, path: string, res: Response, json: Record<string, unknown> | undefined) {
   const statusLine = `${res.status} ${res.statusText}`;
-  const code = json?.data?.code || json?.code || json?.status;
-  const msg = json?.data?.message || json?.message || '';
+  const err = json as ErrorResponse | undefined;
+  const code = err?.data?.code || err?.code || err?.status;
+  const msg = err?.data?.message || err?.message || '';
   return `${method} ${path} failed: ${statusLine} code=${code ?? 'n/a'} msg=${msg || JSON.stringify(json)}`;
 }
 
@@ -59,19 +70,19 @@ export class FxPrivateRestClient {
 
   /** ====== QUERIES ====== */
   getActiveOrders(q?: { symbol?: string; prevId?: string; count?: string }) {
-    return this._get<T.ActiveOrdersResp>(`${V}/activeOrders`, q as any);
+    return this._get<T.ActiveOrdersResp>(`${V}/activeOrders`, q);
   }
   getExecutions(q: { executionId: string }) {
-    return this._get<T.ExecutionsResp>(`${V}/executions`, q as any);
+    return this._get<T.ExecutionsResp>(`${V}/executions`, q);
   }
   getLatestExecutions(q: { symbol: string; count?: string }) {
-    return this._get<T.LatestExecsResp>(`${V}/latestExecutions`, q as any);
+    return this._get<T.LatestExecsResp>(`${V}/latestExecutions`, q);
   }
   getOpenPositions(q?: { symbol?: string; prevId?: string; count?: string }) {
-    return this._get<T.OpenPositionsResp>(`${V}/openPositions`, q as any);
+    return this._get<T.OpenPositionsResp>(`${V}/openPositions`, q);
   }
   getPositionSummary(q?: { symbol?: string }) {
-    return this._get<T.PositionSummaryResp>(`${V}/positionSummary`, q as any);
+    return this._get<T.PositionSummaryResp>(`${V}/positionSummary`, q);
   }
 
   /** ====== ORDERS ====== */

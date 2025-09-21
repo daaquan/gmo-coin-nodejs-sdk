@@ -1,7 +1,7 @@
 // Idempotency cache with Redis fallback to in-memory.
 import { getRedis, ensureRedisConnected } from './redis.js';
 
-type Entry = { status: number; body: any; createdAt: number; ttlMs: number };
+type Entry = { status: number; body: unknown; createdAt: number; ttlMs: number };
 const store = new Map<string, Entry>();
 
 export async function getIdempotent(key?: string): Promise<Entry | undefined> {
@@ -22,7 +22,7 @@ export async function getIdempotent(key?: string): Promise<Entry | undefined> {
   try { return JSON.parse(raw) as Entry; } catch { return undefined; }
 }
 
-export async function setIdempotent(key: string, status: number, body: any, ttlMs = 10 * 60 * 1000) {
+export async function setIdempotent(key: string, status: number, body: unknown, ttlMs = 10 * 60 * 1000) {
   const entry: Entry = { status, body, createdAt: Date.now(), ttlMs };
   const r = getRedis();
   if (!r) {

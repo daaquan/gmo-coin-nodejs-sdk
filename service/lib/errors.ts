@@ -1,5 +1,5 @@
-export function mapGmoError(e: any) {
-  const s = String(e?.message || e || '');
+export function mapGmoError(e: unknown) {
+  const s = String(e instanceof Error ? e.message : e || '');
   // Try to detect known codes from error text
   const m = s.match(/ERR-[0-9]+/);
   const code = m ? m[0] : undefined;
@@ -16,6 +16,6 @@ export function mapGmoError(e: any) {
     case 'ERR-761':
       return 'Order rate exceeds price limit range (ERR-761). Check price bounds.';
     default:
-      return s || e;
+      return s || String(e);
   }
 }

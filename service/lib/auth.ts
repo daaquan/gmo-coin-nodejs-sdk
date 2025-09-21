@@ -17,7 +17,7 @@ export async function serviceAuthHook(req: FastifyRequest, reply: FastifyReply) 
         audience: process.env.JWT_AUDIENCE || undefined,
       });
       return;
-    } catch (e) {
+    } catch {
       return reply.status(401).send({ error: 'unauthorized_jwt' });
     }
   }

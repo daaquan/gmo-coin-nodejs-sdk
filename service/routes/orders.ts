@@ -6,8 +6,6 @@ import { getIdempotent, setIdempotent } from '../lib/idempotency.js';
 import { getCreds, tenantFromReq } from '../lib/tenants.js';
 import { mapGmoError } from '../lib/errors.js';
 
-const Env = z.object({ FX_API_KEY: z.string().optional(), FX_API_SECRET: z.string().optional() });
-
 const LimitOrderBody = z.object({
   symbol: z.string(),
   side: z.enum(['BUY', 'SELL']),
@@ -73,21 +71,19 @@ const IfdocoOrderBody = z.object({
 
 export function registerOrderRoutes(app: FastifyInstance) {
   app.get('/v1/orders/active', { preHandler: [gmoGetGate] }, async (req, reply) => {
-    const env = Env.parse(process.env);
-    const tenant = tenantFromReq(req.headers as any, req.query as any);
+    const tenant = tenantFromReq(req.headers, req.query);
     const { apiKey, secret } = getCreds(tenant);
     const fx = new FxPrivateRestClient(apiKey, secret);
-    const query = req.query as any;
+    const query = req.query;
     req.log.info({ msg: 'getActiveOrders called', tenant, query });
-    const res = await fx.getActiveOrders({ symbol: query?.symbol, count: query?.count, prevId: query?.prevId });
+    const res = await fx.getActiveOrders({ symbol: query?.symbol, count: query?.count ? Number(query.count) : undefined, prevId: query?.prevId });
     req.log.info({ msg: 'getActiveOrders response', data: res });
     return reply.send(res);
   });
 
   app.post('/v1/orders/limit', { preHandler: [gmoPostGate] }, async (req, reply) => {
     try {
-      const env = Env.parse(process.env);
-      const tenant = tenantFromReq(req.headers as any, (req as any).query);
+      const tenant = tenantFromReq(req.headers, req.query);
       const { apiKey, secret } = getCreds(tenant);
       const fx = new FxPrivateRestClient(apiKey, secret);
       const body = LimitOrderBody.parse(req.body);
@@ -116,8 +112,7 @@ export function registerOrderRoutes(app: FastifyInstance) {
 
   app.post('/v1/orders/speed', { preHandler: [gmoPostGate] }, async (req, reply) => {
     try {
-      const env = Env.parse(process.env);
-      const tenant = tenantFromReq(req.headers as any, (req as any).query);
+      const tenant = tenantFromReq(req.headers, req.query);
       const { apiKey, secret } = getCreds(tenant);
       const fx = new FxPrivateRestClient(apiKey, secret);
       const body = SpeedOrderBody.parse(req.body);
@@ -145,8 +140,7 @@ export function registerOrderRoutes(app: FastifyInstance) {
 
   app.post('/v1/orders/cancel', { preHandler: [gmoPostGate] }, async (req, reply) => {
     try {
-      const env = Env.parse(process.env);
-      const tenant = tenantFromReq(req.headers as any, (req as any).query);
+      const tenant = tenantFromReq(req.headers, req.query);
       const { apiKey, secret } = getCreds(tenant);
       const fx = new FxPrivateRestClient(apiKey, secret);
       const body = CancelOrdersBody.parse(req.body);
@@ -160,8 +154,7 @@ export function registerOrderRoutes(app: FastifyInstance) {
 
   app.post('/private/v1/order', { preHandler: [gmoPostGate] }, async (req, reply) => {
     try {
-      const env = Env.parse(process.env);
-      const tenant = tenantFromReq(req.headers as any, (req as any).query);
+      const tenant = tenantFromReq(req.headers, req.query);
       const { apiKey, secret } = getCreds(tenant);
       const fx = new FxPrivateRestClient(apiKey, secret);
       const body = OrderBody.parse(req.body);
@@ -192,8 +185,7 @@ export function registerOrderRoutes(app: FastifyInstance) {
 
   app.post('/private/v1/ifdOrder', { preHandler: [gmoPostGate] }, async (req, reply) => {
     try {
-      const env = Env.parse(process.env);
-      const tenant = tenantFromReq(req.headers as any, (req as any).query);
+      const tenant = tenantFromReq(req.headers, req.query);
       const { apiKey, secret } = getCreds(tenant);
       const fx = new FxPrivateRestClient(apiKey, secret);
       const body = IfdOrderBody.parse(req.body);
@@ -225,8 +217,7 @@ export function registerOrderRoutes(app: FastifyInstance) {
 
   app.post('/private/v1/ifoOrder', { preHandler: [gmoPostGate] }, async (req, reply) => {
     try {
-      const env = Env.parse(process.env);
-      const tenant = tenantFromReq(req.headers as any, (req as any).query);
+      const tenant = tenantFromReq(req.headers, req.query);
       const { apiKey, secret } = getCreds(tenant);
       const fx = new FxPrivateRestClient(apiKey, secret);
       const body = IfdocoOrderBody.parse(req.body);
