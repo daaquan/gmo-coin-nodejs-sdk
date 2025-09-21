@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export type Creds = { apiKey: string; secret: string };
+export type TenantQuery = { tenant?: string };
 
 const BaseEnv = z.object({ FX_API_KEY: z.string().optional(), FX_API_SECRET: z.string().optional() });
 
@@ -18,7 +19,9 @@ export function getCreds(tenantId?: string): Creds {
   return { apiKey: base.FX_API_KEY, secret: base.FX_API_SECRET } as Creds;
 }
 
-export function tenantFromReq(headers: Record<string, string | string[] | undefined>, query?: Record<string, string | string[] | undefined>): string | undefined {
+export function tenantFromReq(
+  headers: Record<string, string | string[] | undefined>,
+  query?: TenantQuery
+): string | undefined {
   return (headers['x-tenant-id'] as string | undefined) || (query?.tenant as string | undefined);
 }
-

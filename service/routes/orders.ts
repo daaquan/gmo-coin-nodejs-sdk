@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { FxPrivateRestClient } from '../../src/rest.js';
 import { gmoGetGate, gmoPostGate } from '../lib/rateLimiter.js';
 import { getIdempotent, setIdempotent } from '../lib/idempotency.js';
-import { getCreds, tenantFromReq } from '../lib/tenants.js';
+import { getCreds, tenantFromReq, type TenantQuery } from '../lib/tenants.js';
 import { mapGmoError } from '../lib/errors.js';
 
 const LimitOrderBody = z.object({
@@ -69,24 +69,33 @@ const IfdocoOrderBody = z.object({
   secondSize: z.string(),
 });
 
-export function registerOrderRoutes(app: FastifyInstance) {
-  app.get('/v1/orders/active', { preHandler: [gmoGetGate] }, async (req, reply) => {
-    const tenant = tenantFromReq(req.headers, req.query);
-    const { apiKey, secret } = getCreds(tenant);
-    const fx = new FxPrivateRestClient(apiKey, secret);
-    const query = req.query;
-    req.log.info({ msg: 'getActiveOrders called', tenant, query });
-    const res = await fx.getActiveOrders({ symbol: query?.symbol, count: query?.count ? Number(query.count) : undefined, prevId: query?.prevId });
-    req.log.info({ msg: 'getActiveOrders response', data: res });
-    return reply.send(res);
-  });
+type OrdersActiveQuery = TenantQuery & { symbol?: string; count?: string; prevId?: string };
 
-  app.post('/v1/orders/limit', { preHandler: [gmoPostGate] }, async (req, reply) => {
-    try {
+export function registerOrderRoutes(app: FastifyInstance) {
+  app.get<{ Querystring: OrdersActiveQuery }>(
+    '/v1/orders/active',
+    { preHandler: [gmoGetGate] },
+    async (req, reply) => {
       const tenant = tenantFromReq(req.headers, req.query);
       const { apiKey, secret } = getCreds(tenant);
       const fx = new FxPrivateRestClient(apiKey, secret);
-      const body = LimitOrderBody.parse(req.body);
+      const query = req.query;
+      req.log.info({ msg: 'getActiveOrders called', tenant, query });
+      const res = await fx.getActiveOrders({ symbol: query?.symbol, count: query?.count, prevId: query?.prevId });
+      req.log.info({ msg: 'getActiveOrders response', data: res });
+      return reply.send(res);
+    }
+  );
+
+  app.post<{ Querystring: TenantQuery }>(
+    '/v1/orders/limit',
+    { preHandler: [gmoPostGate] },
+    async (req, reply) => {
+      try {
+        const tenant = tenantFromReq(req.headers, req.query);
+        const { apiKey, secret } = getCreds(tenant);
+        const fx = new FxPrivateRestClient(apiKey, secret);
+        const body = LimitOrderBody.parse(req.body);
 
       const idem = (req.headers['idempotency-key'] as string) || undefined;
       const cached = await getIdempotent(idem);
@@ -104,18 +113,22 @@ export function registerOrderRoutes(app: FastifyInstance) {
       });
       if (idem) await setIdempotent(idem, 200, placed);
       return reply.send(placed);
-    } catch (e) {
-      const err = mapGmoError(e);
-      return reply.status(400).send({ error: 'order_limit_failed', detail: String(err) });
+      } catch (e) {
+        const err = mapGmoError(e);
+        return reply.status(400).send({ error: 'order_limit_failed', detail: String(err) });
+      }
     }
-  });
+  );
 
-  app.post('/v1/orders/speed', { preHandler: [gmoPostGate] }, async (req, reply) => {
-    try {
-      const tenant = tenantFromReq(req.headers, req.query);
-      const { apiKey, secret } = getCreds(tenant);
-      const fx = new FxPrivateRestClient(apiKey, secret);
-      const body = SpeedOrderBody.parse(req.body);
+  app.post<{ Querystring: TenantQuery }>(
+    '/v1/orders/speed',
+    { preHandler: [gmoPostGate] },
+    async (req, reply) => {
+      try {
+        const tenant = tenantFromReq(req.headers, req.query);
+        const { apiKey, secret } = getCreds(tenant);
+        const fx = new FxPrivateRestClient(apiKey, secret);
+        const body = SpeedOrderBody.parse(req.body);
 
       const idem = (req.headers['idempotency-key'] as string) || undefined;
       const cached = await getIdempotent(idem);
@@ -132,32 +145,40 @@ export function registerOrderRoutes(app: FastifyInstance) {
       });
       if (idem) await setIdempotent(idem, 200, placed);
       return reply.send(placed);
-    } catch (e) {
-      const err = mapGmoError(e);
-      return reply.status(400).send({ error: 'order_speed_failed', detail: String(err) });
+      } catch (e) {
+        const err = mapGmoError(e);
+        return reply.status(400).send({ error: 'order_speed_failed', detail: String(err) });
+      }
     }
-  });
+  );
 
-  app.post('/v1/orders/cancel', { preHandler: [gmoPostGate] }, async (req, reply) => {
-    try {
-      const tenant = tenantFromReq(req.headers, req.query);
-      const { apiKey, secret } = getCreds(tenant);
-      const fx = new FxPrivateRestClient(apiKey, secret);
-      const body = CancelOrdersBody.parse(req.body);
-      const res = await fx.cancelOrders({ rootOrderIds: body.rootOrderIds });
-      return reply.send(res);
-    } catch (e) {
-      const err = mapGmoError(e);
-      return reply.status(400).send({ error: 'order_cancel_failed', detail: String(err) });
+  app.post<{ Querystring: TenantQuery }>(
+    '/v1/orders/cancel',
+    { preHandler: [gmoPostGate] },
+    async (req, reply) => {
+      try {
+        const tenant = tenantFromReq(req.headers, req.query);
+        const { apiKey, secret } = getCreds(tenant);
+        const fx = new FxPrivateRestClient(apiKey, secret);
+        const body = CancelOrdersBody.parse(req.body);
+        const res = await fx.cancelOrders({ rootOrderIds: body.rootOrderIds });
+        return reply.send(res);
+      } catch (e) {
+        const err = mapGmoError(e);
+        return reply.status(400).send({ error: 'order_cancel_failed', detail: String(err) });
+      }
     }
-  });
+  );
 
-  app.post('/private/v1/order', { preHandler: [gmoPostGate] }, async (req, reply) => {
-    try {
-      const tenant = tenantFromReq(req.headers, req.query);
-      const { apiKey, secret } = getCreds(tenant);
-      const fx = new FxPrivateRestClient(apiKey, secret);
-      const body = OrderBody.parse(req.body);
+  app.post<{ Querystring: TenantQuery }>(
+    '/private/v1/order',
+    { preHandler: [gmoPostGate] },
+    async (req, reply) => {
+      try {
+        const tenant = tenantFromReq(req.headers, req.query);
+        const { apiKey, secret } = getCreds(tenant);
+        const fx = new FxPrivateRestClient(apiKey, secret);
+        const body = OrderBody.parse(req.body);
 
       const idem = (req.headers['idempotency-key'] as string) || undefined;
       const cached = await getIdempotent(idem);
@@ -177,18 +198,22 @@ export function registerOrderRoutes(app: FastifyInstance) {
       });
       if (idem) await setIdempotent(idem, 200, placed);
       return reply.send(placed);
-    } catch (e) {
-      const err = mapGmoError(e);
-      return reply.status(400).send({ error: 'order_failed', detail: String(err) });
+      } catch (e) {
+        const err = mapGmoError(e);
+        return reply.status(400).send({ error: 'order_failed', detail: String(err) });
+      }
     }
-  });
+  );
 
-  app.post('/private/v1/ifdOrder', { preHandler: [gmoPostGate] }, async (req, reply) => {
-    try {
-      const tenant = tenantFromReq(req.headers, req.query);
-      const { apiKey, secret } = getCreds(tenant);
-      const fx = new FxPrivateRestClient(apiKey, secret);
-      const body = IfdOrderBody.parse(req.body);
+  app.post<{ Querystring: TenantQuery }>(
+    '/private/v1/ifdOrder',
+    { preHandler: [gmoPostGate] },
+    async (req, reply) => {
+      try {
+        const tenant = tenantFromReq(req.headers, req.query);
+        const { apiKey, secret } = getCreds(tenant);
+        const fx = new FxPrivateRestClient(apiKey, secret);
+        const body = IfdOrderBody.parse(req.body);
 
       const idem = (req.headers['idempotency-key'] as string) || undefined;
       const cached = await getIdempotent(idem);
@@ -209,18 +234,22 @@ export function registerOrderRoutes(app: FastifyInstance) {
       });
       if (idem) await setIdempotent(idem, 200, placed);
       return reply.send(placed);
-    } catch (e) {
-      const err = mapGmoError(e);
-      return reply.status(400).send({ error: 'ifd_order_failed', detail: String(err) });
+      } catch (e) {
+        const err = mapGmoError(e);
+        return reply.status(400).send({ error: 'ifd_order_failed', detail: String(err) });
+      }
     }
-  });
+  );
 
-  app.post('/private/v1/ifoOrder', { preHandler: [gmoPostGate] }, async (req, reply) => {
-    try {
-      const tenant = tenantFromReq(req.headers, req.query);
-      const { apiKey, secret } = getCreds(tenant);
-      const fx = new FxPrivateRestClient(apiKey, secret);
-      const body = IfdocoOrderBody.parse(req.body);
+  app.post<{ Querystring: TenantQuery }>(
+    '/private/v1/ifoOrder',
+    { preHandler: [gmoPostGate] },
+    async (req, reply) => {
+      try {
+        const tenant = tenantFromReq(req.headers, req.query);
+        const { apiKey, secret } = getCreds(tenant);
+        const fx = new FxPrivateRestClient(apiKey, secret);
+        const body = IfdocoOrderBody.parse(req.body);
 
       const idem = (req.headers['idempotency-key'] as string) || undefined;
       const cached = await getIdempotent(idem);
@@ -241,9 +270,10 @@ export function registerOrderRoutes(app: FastifyInstance) {
       });
       if (idem) await setIdempotent(idem, 200, placed);
       return reply.send(placed);
-    } catch (e) {
-      const err = mapGmoError(e);
-      return reply.status(400).send({ error: 'ifo_order_failed', detail: String(err) });
+      } catch (e) {
+        const err = mapGmoError(e);
+        return reply.status(400).send({ error: 'ifo_order_failed', detail: String(err) });
+      }
     }
-  });
+  );
 }

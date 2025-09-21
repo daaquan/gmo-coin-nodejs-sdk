@@ -1,14 +1,15 @@
 import type { FastifyInstance } from 'fastify';
-import { EventEmitter } from 'events';
 import { FxPrivateWsAuth, FxPrivateWsClient } from '../../src/ws-private.js';
 import { gmoWsGate } from '../lib/rateLimiter.js';
-import { getCreds, tenantFromReq } from '../lib/tenants.js';
+import { getCreds, tenantFromReq, type TenantQuery } from '../lib/tenants.js';
 
 type Topic = 'execution' | 'order' | 'position' | 'positionSummary';
 
+type StreamQuery = TenantQuery & { topics?: string; symbol?: string };
+
 export function registerStreamRoutes(app: FastifyInstance) {
   // Simple SSE bridge from Private WS to clients
-  app.get('/v1/stream', async (req, reply) => {
+  app.get<{ Querystring: StreamQuery }>('/v1/stream', async (req, reply) => {
     console.log('Stream: route called');
     await gmoWsGate();
     console.log('Stream: after gmoWsGate');
@@ -63,10 +64,10 @@ export function registerStreamRoutes(app: FastifyInstance) {
       ws.onMessage((msg) => send('message', msg));
 
       // Subscribe to topics via query, default to execution+order
-      const q = req.query as { topics?: string; symbol?: string };
+      const q = req.query;
       const topics: string[] = (q?.topics ? String(q.topics).split(',') : ['execution', 'order']).map((s) => s.trim());
       const symbol = q?.symbol ? String(q.symbol) : undefined;
-      for (const t of topics) await ws.subscribe(t, symbol);
+      for (const t of topics) await ws.subscribe(t as Topic, symbol);
 
       // Reconnect on close with simple backoff
       let reconnecting = false;
@@ -88,7 +89,7 @@ export function registerStreamRoutes(app: FastifyInstance) {
         }
         send('error', { error: 'ws_reconnect_failed' });
       };
-      (ws as EventEmitter).on?.('close', onClose);
+      ws.onClose(onClose);
 
       // Cleanup on client disconnect
       req.raw.on('close', async () => {

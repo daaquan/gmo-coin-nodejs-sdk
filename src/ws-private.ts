@@ -63,6 +63,10 @@ export class FxPrivateWsClient {
     });
   }
 
+  onClose(fn: () => void) {
+    this.ws?.on('close', fn as unknown as () => void);
+  }
+
   async subscribe(topic: 'execution' | 'order' | 'position' | 'positionSummary', symbol?: string) {
     await wsGate.wait();
     const payload: { command: string; channel: string; symbol?: string } = { command: 'subscribe', channel: topic };
