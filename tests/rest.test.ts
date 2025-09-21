@@ -142,6 +142,68 @@ describe('FxPrivateRestClient', () => {
 
       expect(() => client.placeOrder(orderReq)).toThrow('STOP requires stopPrice');
     });
+
+    it('should place OCO order successfully', async () => {
+      const mockResponse = {
+        status: 0,
+        data: [
+          {
+            rootOrderId: 12345,
+            orderId: 67890,
+            symbol: 'USD_JPY',
+            side: 'BUY' as const,
+            orderType: 'NORMAL' as const,
+            executionType: 'OCO' as const,
+            settleType: 'OPEN' as const,
+            size: '10000',
+            price: '130.00',
+            status: 'WAITING' as const,
+            timestamp: '2023-01-01T00:00:00.000Z',
+          },
+        ],
+        responsetime: '2023-01-01T00:00:00.000Z',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(mockResponse),
+      });
+
+      const orderReq = {
+        symbol: 'USD_JPY',
+        side: 'BUY' as const,
+        size: '10000',
+        executionType: 'OCO' as const,
+        oco: { limitPrice: '131.00', stopPrice: '129.00' },
+      };
+
+      const result = await client.placeOrder(orderReq);
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should throw error for OCO order without oco.limitPrice', async () => {
+      const orderReq = {
+        symbol: 'USD_JPY',
+        side: 'BUY' as const,
+        size: '10000',
+        executionType: 'OCO' as const,
+        oco: { stopPrice: '129.00' },
+      };
+
+      expect(() => client.placeOrder(orderReq)).toThrow('OCO requires oco.limitPrice and oco.stopPrice');
+    });
+
+    it('should throw error for OCO order without oco.stopPrice', async () => {
+      const orderReq = {
+        symbol: 'USD_JPY',
+        side: 'BUY' as const,
+        size: '10000',
+        executionType: 'OCO' as const,
+        oco: { limitPrice: '131.00' },
+      };
+
+      expect(() => client.placeOrder(orderReq)).toThrow('OCO requires oco.limitPrice and oco.stopPrice');
+    });
   });
 
   describe('cancelOrders', () => {
@@ -173,6 +235,122 @@ describe('FxPrivateRestClient', () => {
       };
 
       expect(() => client.closeOrder(orderReq)).toThrow('closeOrder requires at least one settlePosition');
+    });
+  });
+
+  describe('placeIfdOrder', () => {
+    it('should place IFD order successfully', async () => {
+      const mockResponse = {
+        status: 0,
+        data: [
+          {
+            rootOrderId: 12345,
+            orderId: 67890,
+            symbol: 'USD_JPY',
+            side: 'BUY' as const,
+            orderType: 'IFD' as const,
+            executionType: 'LIMIT' as const,
+            settleType: 'OPEN' as const,
+            size: '10000',
+            price: '130.00',
+            status: 'WAITING' as const,
+            timestamp: '2023-01-01T00:00:00.000Z',
+          },
+        ],
+        responsetime: '2023-01-01T00:00:00.000Z',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(mockResponse),
+      });
+
+      const ifdOrderReq = {
+        symbol: 'USD_JPY',
+        firstSide: 'BUY' as const,
+        firstExecutionType: 'LIMIT' as const,
+        firstSize: '10000',
+        firstPrice: '130.00',
+        secondExecutionType: 'LIMIT' as const,
+        secondSize: '10000',
+        secondPrice: '131.00',
+      };
+
+      const result = await client.placeIfdOrder(ifdOrderReq);
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should throw error for IFD order with invalid first execution type', async () => {
+      const ifdOrderReq = {
+        symbol: 'USD_JPY',
+        firstSide: 'BUY' as const,
+        firstExecutionType: 'LIMIT' as const,
+        firstSize: '10000',
+        secondExecutionType: 'LIMIT' as const,
+        secondSize: '10000',
+        secondPrice: '131.00',
+      };
+
+      expect(() => client.placeIfdOrder(ifdOrderReq)).toThrow('LIMIT requires limitPrice');
+    });
+  });
+
+  describe('placeIfdocoOrder', () => {
+    it('should place IFDOCO order successfully', async () => {
+      const mockResponse = {
+        status: 0,
+        data: [
+          {
+            rootOrderId: 12345,
+            orderId: 67890,
+            symbol: 'USD_JPY',
+            side: 'BUY' as const,
+            orderType: 'IFDOCO' as const,
+            executionType: 'LIMIT' as const,
+            settleType: 'OPEN' as const,
+            size: '10000',
+            price: '130.00',
+            status: 'WAITING' as const,
+            timestamp: '2023-01-01T00:00:00.000Z',
+          },
+        ],
+        responsetime: '2023-01-01T00:00:00.000Z',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(mockResponse),
+      });
+
+      const ifdocoOrderReq = {
+        symbol: 'USD_JPY',
+        firstSide: 'BUY' as const,
+        firstExecutionType: 'LIMIT' as const,
+        firstSize: '10000',
+        firstPrice: '130.00',
+        secondExecutionType: 'LIMIT' as const,
+        secondLimitPrice: '131.00',
+        secondStopPrice: '129.00',
+        secondSize: '10000',
+      };
+
+      const result = await client.placeIfdocoOrder(ifdocoOrderReq);
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should throw error for IFDOCO order without secondLimitPrice', async () => {
+      const ifdocoOrderReq = {
+        symbol: 'USD_JPY',
+        firstSide: 'BUY' as const,
+        firstExecutionType: 'LIMIT' as const,
+        firstSize: '10000',
+        firstPrice: '130.00',
+        secondExecutionType: 'LIMIT' as const,
+        secondStopPrice: '129.00',
+        secondSize: '10000',
+      };
+
+      expect(() => client.placeIfdocoOrder(ifdocoOrderReq)).toThrow('IFDOCO requires secondLimitPrice and secondStopPrice');
     });
   });
 });

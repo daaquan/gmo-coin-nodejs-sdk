@@ -5,9 +5,10 @@ import type * as T from './types.js';
 const BASE = 'https://forex-api.coin.z.com/private';
 const V = '/v1';
 
-function ensureExecFields(execType: T.ExecType, body: { limitPrice?: string; stopPrice?: string }) {
+function ensureExecFields(execType: T.ExecType, body: { limitPrice?: string; stopPrice?: string; oco?: { limitPrice: string; stopPrice: string } }) {
   if (execType === 'LIMIT' && !body.limitPrice) throw new Error('LIMIT requires limitPrice');
   if (execType === 'STOP' && !body.stopPrice) throw new Error('STOP requires stopPrice');
+  if (execType === 'OCO' && (!body.oco?.limitPrice || !body.oco?.stopPrice)) throw new Error('OCO requires oco.limitPrice and oco.stopPrice');
 }
 
 async function parseJson(res: Response) {
@@ -81,6 +82,7 @@ export class FxPrivateRestClient {
     ensureExecFields(body.executionType, body);
     if (body.executionType === 'LIMIT' && !body.limitPrice) throw new Error('LIMIT order requires limitPrice');
     if (body.executionType === 'STOP' && !body.stopPrice) throw new Error('STOP order requires stopPrice');
+    if (body.executionType === 'OCO' && (!body.oco?.limitPrice || !body.oco?.stopPrice)) throw new Error('OCO order requires oco.limitPrice and oco.stopPrice');
     return this._post<T.OrderResp>(`${V}/order`, body);
   }
   placeIfdOrder(body: T.IfdOrderReq) {

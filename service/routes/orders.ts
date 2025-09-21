@@ -30,6 +30,47 @@ const SpeedOrderBody = z.object({
 
 const CancelOrdersBody = z.object({ rootOrderIds: z.array(z.number().int()).min(1) });
 
+const OrderBody = z.object({
+  symbol: z.string(),
+  side: z.enum(['BUY', 'SELL']),
+  size: z.string(),
+  clientOrderId: z.string().optional(),
+  executionType: z.enum(['LIMIT', 'STOP', 'OCO']),
+  limitPrice: z.string().optional(),
+  stopPrice: z.string().optional(),
+  oco: z.object({ limitPrice: z.string(), stopPrice: z.string() }).optional(),
+  expireDate: z.string().optional(),
+  settleType: z.enum(['OPEN', 'CLOSE']).optional(),
+});
+
+const IfdOrderBody = z.object({
+  symbol: z.string(),
+  clientOrderId: z.string().optional(),
+  firstSide: z.enum(['BUY', 'SELL']),
+  firstExecutionType: z.enum(['LIMIT', 'STOP']),
+  firstSize: z.string(),
+  firstPrice: z.string().optional(),
+  firstStopPrice: z.string().optional(),
+  secondExecutionType: z.enum(['LIMIT', 'STOP']),
+  secondSize: z.string(),
+  secondPrice: z.string().optional(),
+  secondStopPrice: z.string().optional(),
+});
+
+const IfdocoOrderBody = z.object({
+  symbol: z.string(),
+  clientOrderId: z.string().optional(),
+  firstSide: z.enum(['BUY', 'SELL']),
+  firstExecutionType: z.enum(['LIMIT', 'STOP']),
+  firstSize: z.string(),
+  firstPrice: z.string().optional(),
+  firstStopPrice: z.string().optional(),
+  secondExecutionType: z.literal('LIMIT'),
+  secondLimitPrice: z.string(),
+  secondStopPrice: z.string(),
+  secondSize: z.string(),
+});
+
 export function registerOrderRoutes(app: FastifyInstance) {
   app.get('/v1/orders/active', { preHandler: [gmoGetGate] }, async (req, reply) => {
     const env = Env.parse(process.env);
@@ -112,6 +153,104 @@ export function registerOrderRoutes(app: FastifyInstance) {
     } catch (e) {
       const err = mapGmoError(e);
       return reply.status(400).send({ error: 'order_cancel_failed', detail: String(err) });
+    }
+  });
+
+  app.post('/private/v1/order', { preHandler: [gmoPostGate] }, async (req, reply) => {
+    try {
+      const env = Env.parse(process.env);
+      const tenant = tenantFromReq(req.headers as any, (req as any).query);
+      const { apiKey, secret } = getCreds(tenant);
+      const fx = new FxPrivateRestClient(apiKey, secret);
+      const body = OrderBody.parse(req.body);
+
+      const idem = (req.headers['idempotency-key'] as string) || undefined;
+      const cached = await getIdempotent(idem);
+      if (cached) return reply.status(cached.status).send(cached.body);
+
+      const placed = await fx.placeOrder({
+        symbol: body.symbol,
+        side: body.side,
+        size: body.size,
+        executionType: body.executionType,
+        limitPrice: body.limitPrice,
+        stopPrice: body.stopPrice,
+        oco: body.oco,
+        clientOrderId: body.clientOrderId,
+        expireDate: body.expireDate,
+        settleType: body.settleType,
+      });
+      if (idem) await setIdempotent(idem, 200, placed);
+      return reply.send(placed);
+    } catch (e) {
+      const err = mapGmoError(e);
+      return reply.status(400).send({ error: 'order_failed', detail: String(err) });
+    }
+  });
+
+  app.post('/private/v1/ifdOrder', { preHandler: [gmoPostGate] }, async (req, reply) => {
+    try {
+      const env = Env.parse(process.env);
+      const tenant = tenantFromReq(req.headers as any, (req as any).query);
+      const { apiKey, secret } = getCreds(tenant);
+      const fx = new FxPrivateRestClient(apiKey, secret);
+      const body = IfdOrderBody.parse(req.body);
+
+      const idem = (req.headers['idempotency-key'] as string) || undefined;
+      const cached = await getIdempotent(idem);
+      if (cached) return reply.status(cached.status).send(cached.body);
+
+      const placed = await fx.placeIfdOrder({
+        symbol: body.symbol,
+        clientOrderId: body.clientOrderId,
+        firstSide: body.firstSide,
+        firstExecutionType: body.firstExecutionType,
+        firstSize: body.firstSize,
+        firstPrice: body.firstPrice,
+        firstStopPrice: body.firstStopPrice,
+        secondExecutionType: body.secondExecutionType,
+        secondSize: body.secondSize,
+        secondPrice: body.secondPrice,
+        secondStopPrice: body.secondStopPrice,
+      });
+      if (idem) await setIdempotent(idem, 200, placed);
+      return reply.send(placed);
+    } catch (e) {
+      const err = mapGmoError(e);
+      return reply.status(400).send({ error: 'ifd_order_failed', detail: String(err) });
+    }
+  });
+
+  app.post('/private/v1/ifoOrder', { preHandler: [gmoPostGate] }, async (req, reply) => {
+    try {
+      const env = Env.parse(process.env);
+      const tenant = tenantFromReq(req.headers as any, (req as any).query);
+      const { apiKey, secret } = getCreds(tenant);
+      const fx = new FxPrivateRestClient(apiKey, secret);
+      const body = IfdocoOrderBody.parse(req.body);
+
+      const idem = (req.headers['idempotency-key'] as string) || undefined;
+      const cached = await getIdempotent(idem);
+      if (cached) return reply.status(cached.status).send(cached.body);
+
+      const placed = await fx.placeIfdocoOrder({
+        symbol: body.symbol,
+        clientOrderId: body.clientOrderId,
+        firstSide: body.firstSide,
+        firstExecutionType: body.firstExecutionType,
+        firstSize: body.firstSize,
+        firstPrice: body.firstPrice,
+        firstStopPrice: body.firstStopPrice,
+        secondExecutionType: body.secondExecutionType,
+        secondLimitPrice: body.secondLimitPrice,
+        secondStopPrice: body.secondStopPrice,
+        secondSize: body.secondSize,
+      });
+      if (idem) await setIdempotent(idem, 200, placed);
+      return reply.send(placed);
+    } catch (e) {
+      const err = mapGmoError(e);
+      return reply.status(400).send({ error: 'ifo_order_failed', detail: String(err) });
     }
   });
 }

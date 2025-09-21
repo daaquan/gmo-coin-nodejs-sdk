@@ -1,5 +1,5 @@
 export type Side = 'BUY' | 'SELL';
-export type ExecType = 'LIMIT' | 'STOP';
+export type ExecType = 'LIMIT' | 'STOP' | 'OCO';
 export type SettleType = 'OPEN' | 'CLOSE';
 
 export interface ApiEnvelope<T> {
@@ -64,6 +64,7 @@ export interface OrderReq {
   executionType: ExecType;
   limitPrice?: string; // required for LIMIT
   stopPrice?: string; // required for STOP
+  oco?: { limitPrice: string; stopPrice: string }; // required for OCO
   expireDate?: string; // optional yyyymmdd
   settleType?: SettleType; // default OPEN
 }
