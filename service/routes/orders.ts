@@ -78,7 +78,9 @@ export function registerOrderRoutes(app: FastifyInstance) {
     const { apiKey, secret } = getCreds(tenant);
     const fx = new FxPrivateRestClient(apiKey, secret);
     const query = req.query as any;
+    req.log.info({ msg: 'getActiveOrders called', tenant, query });
     const res = await fx.getActiveOrders({ symbol: query?.symbol, count: query?.count, prevId: query?.prevId });
+    req.log.info({ msg: 'getActiveOrders response', data: res });
     return reply.send(res);
   });
 
