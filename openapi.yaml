@@ -2,37 +2,127 @@ openapi: 3.0.3
 info:
   title: FX Private API Microservice
   version: 0.1.0
+  description: GMO Coin FX trading API microservice with comprehensive order management and streaming capabilities
 servers:
-  - url: http://localhost:3000
+  - url: http://localhost:9100
+    description: Local development server
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error code
+        detail:
+          type: string
+          description: Error details
+    OrderResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+        data:
+          type: object
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+        data:
+          type: object
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      description: Idempotency key for request deduplication
+      schema:
+        type: string
 paths:
   /health:
     get:
-      summary: Health check
+      summary: Health check endpoint
+      description: Returns service health status
       responses:
-        '200': { description: OK }
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+  /metrics:
+    get:
+      summary: Prometheus metrics endpoint
+      description: Returns Prometheus-formatted metrics for monitoring
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
   /v1/account/assets:
     get:
       summary: Get account assets
+      description: Retrieve current account asset balances
       responses:
-        '200': { description: Success }
+        '200':
+          description: Account assets retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /v1/orders/active:
     get:
       summary: Get active orders
+      description: Retrieve list of active orders with optional filtering
       parameters:
         - in: query
           name: symbol
-          schema: { type: string }
+          description: Trading symbol to filter by
+          schema:
+            type: string
+            example: USD_JPY
         - in: query
           name: count
-          schema: { type: string }
+          description: Number of orders to retrieve
+          schema:
+            type: string
+            example: "100"
         - in: query
           name: prevId
-          schema: { type: string }
+          description: Previous order ID for pagination
+          schema:
+            type: string
       responses:
-        '200': { description: Success }
+        '200':
+          description: Active orders retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /v1/orders/limit:
     post:
       summary: Place LIMIT order
+      description: Place a limit order with specified price
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -41,18 +131,52 @@ paths:
               type: object
               required: [symbol, side, size, limitPrice]
               properties:
-                symbol: { type: string }
-                side: { type: string, enum: [BUY, SELL] }
-                size: { type: string }
-                limitPrice: { type: string }
-                clientOrderId: { type: string }
-                expireDate: { type: string }
-                settleType: { type: string, enum: [OPEN, CLOSE] }
+                symbol:
+                  type: string
+                  description: Trading symbol
+                  example: USD_JPY
+                side:
+                  type: string
+                  enum: [BUY, SELL]
+                  description: Order side
+                size:
+                  type: string
+                  description: Order size
+                  example: "1000"
+                limitPrice:
+                  type: string
+                  description: Limit price
+                  example: "150.50"
+                clientOrderId:
+                  type: string
+                  description: Client-generated order ID
+                expireDate:
+                  type: string
+                  description: Order expiration date
+                  format: date-time
+                settleType:
+                  type: string
+                  enum: [OPEN, CLOSE]
+                  description: Settlement type
       responses:
-        '200': { description: Success }
+        '200':
+          description: Order placed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Order placement failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /v1/orders/speed:
     post:
       summary: Place SPEED order
+      description: Place a speed order (market order with bounds)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -61,18 +185,49 @@ paths:
               type: object
               required: [symbol, side, size]
               properties:
-                symbol: { type: string }
-                side: { type: string, enum: [BUY, SELL] }
-                size: { type: string }
-                clientOrderId: { type: string }
-                upperBound: { type: string }
-                lowerBound: { type: string }
-                isHedgeable: { type: boolean }
+                symbol:
+                  type: string
+                  description: Trading symbol
+                  example: USD_JPY
+                side:
+                  type: string
+                  enum: [BUY, SELL]
+                  description: Order side
+                size:
+                  type: string
+                  description: Order size
+                  example: "1000"
+                clientOrderId:
+                  type: string
+                  description: Client-generated order ID
+                upperBound:
+                  type: string
+                  description: Upper price bound
+                  example: "151.00"
+                lowerBound:
+                  type: string
+                  description: Lower price bound
+                  example: "150.00"
+                isHedgeable:
+                  type: boolean
+                  description: Whether order is hedgeable
       responses:
-        '200': { description: Success }
+        '200':
+          description: Speed order placed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Speed order placement failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /v1/orders/cancel:
     post:
       summary: Cancel orders by rootOrderIds
+      description: Cancel one or more orders by their root order IDs
       requestBody:
         required: true
         content:
@@ -83,29 +238,315 @@ paths:
               properties:
                 rootOrderIds:
                   type: array
-                  items: { type: integer }
+                  items:
+                    type: integer
+                  description: Array of root order IDs to cancel
+                  example: [12345, 12346]
+                  minItems: 1
       responses:
-        '200': { description: Success }
+        '200':
+          description: Orders cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Order cancellation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /v1/positions/open:
     get:
       summary: Get open positions
+      description: Retrieve all open trading positions
       responses:
-        '200': { description: Success }
+        '200':
+          description: Open positions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /v1/positions/summary:
     get:
       summary: Get position summary
+      description: Retrieve summarized position information
       responses:
-        '200': { description: Success }
+        '200':
+          description: Position summary retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /v1/stream:
     get:
       summary: SSE stream bridging GMO Private WS
+      description: Server-Sent Events stream that bridges GMO Private WebSocket
       parameters:
         - in: query
           name: topics
-          schema: { type: string }
+          description: WebSocket topics to subscribe to
+          schema:
+            type: string
+            example: "ExecutionEvents,OrderEvents"
         - in: query
           name: symbol
-          schema: { type: string }
+          description: Trading symbol filter
+          schema:
+            type: string
+            example: USD_JPY
       responses:
-        '200': { description: text/event-stream }
+        '200':
+          description: SSE stream established
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/ws-auth:
+    post:
+      summary: Generate WebSocket authentication token
+      description: Create authentication token for WebSocket connections
+      responses:
+        '200':
+          description: WebSocket auth token generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /private/v1/order:
+    post:
+      summary: Place advanced order (LIMIT/STOP/OCO)
+      description: Place an order with advanced execution types including OCO
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [symbol, side, size, executionType]
+              properties:
+                symbol:
+                  type: string
+                  description: Trading symbol
+                  example: USD_JPY
+                side:
+                  type: string
+                  enum: [BUY, SELL]
+                  description: Order side
+                size:
+                  type: string
+                  description: Order size
+                  example: "1000"
+                executionType:
+                  type: string
+                  enum: [LIMIT, STOP, OCO]
+                  description: Order execution type
+                limitPrice:
+                  type: string
+                  description: Limit price (required for LIMIT and OCO)
+                  example: "150.50"
+                stopPrice:
+                  type: string
+                  description: Stop price (required for STOP and OCO)
+                  example: "149.50"
+                oco:
+                  type: object
+                  description: OCO order parameters (required for OCO)
+                  properties:
+                    limitPrice:
+                      type: string
+                      example: "151.00"
+                    stopPrice:
+                      type: string
+                      example: "149.00"
+                clientOrderId:
+                  type: string
+                  description: Client-generated order ID
+                expireDate:
+                  type: string
+                  description: Order expiration date
+                  format: date-time
+                settleType:
+                  type: string
+                  enum: [OPEN, CLOSE]
+                  description: Settlement type
+      responses:
+        '200':
+          description: Order placed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Order placement failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /private/v1/ifdOrder:
+    post:
+      summary: Place IFD (If Done) order
+      description: Place an If-Done order with primary and secondary order conditions
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [symbol, firstSide, firstExecutionType, firstSize, secondExecutionType, secondSize]
+              properties:
+                symbol:
+                  type: string
+                  description: Trading symbol
+                  example: USD_JPY
+                clientOrderId:
+                  type: string
+                  description: Client-generated order ID
+                firstSide:
+                  type: string
+                  enum: [BUY, SELL]
+                  description: First order side
+                firstExecutionType:
+                  type: string
+                  enum: [LIMIT, STOP]
+                  description: First order execution type
+                firstSize:
+                  type: string
+                  description: First order size
+                  example: "1000"
+                firstPrice:
+                  type: string
+                  description: First order price (for LIMIT)
+                  example: "150.50"
+                firstStopPrice:
+                  type: string
+                  description: First order stop price (for STOP)
+                  example: "149.50"
+                secondExecutionType:
+                  type: string
+                  enum: [LIMIT, STOP]
+                  description: Second order execution type
+                secondSize:
+                  type: string
+                  description: Second order size
+                  example: "1000"
+                secondPrice:
+                  type: string
+                  description: Second order price (for LIMIT)
+                  example: "151.00"
+                secondStopPrice:
+                  type: string
+                  description: Second order stop price (for STOP)
+                  example: "149.00"
+      responses:
+        '200':
+          description: IFD order placed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: IFD order placement failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /private/v1/ifoOrder:
+    post:
+      summary: Place IFDOCO (If Done One Cancels Other) order
+      description: Place an If-Done-One-Cancels-Other order combining IFD and OCO
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [symbol, firstSide, firstExecutionType, firstSize, secondExecutionType, secondLimitPrice, secondStopPrice, secondSize]
+              properties:
+                symbol:
+                  type: string
+                  description: Trading symbol
+                  example: USD_JPY
+                clientOrderId:
+                  type: string
+                  description: Client-generated order ID
+                firstSide:
+                  type: string
+                  enum: [BUY, SELL]
+                  description: First order side
+                firstExecutionType:
+                  type: string
+                  enum: [LIMIT, STOP]
+                  description: First order execution type
+                firstSize:
+                  type: string
+                  description: First order size
+                  example: "1000"
+                firstPrice:
+                  type: string
+                  description: First order price (for LIMIT)
+                  example: "150.50"
+                firstStopPrice:
+                  type: string
+                  description: First order stop price (for STOP)
+                  example: "149.50"
+                secondExecutionType:
+                  type: string
+                  enum: [LIMIT]
+                  description: Second order execution type (must be LIMIT for IFDOCO)
+                secondLimitPrice:
+                  type: string
+                  description: Second order limit price
+                  example: "151.00"
+                secondStopPrice:
+                  type: string
+                  description: Second order stop price
+                  example: "149.00"
+                secondSize:
+                  type: string
+                  description: Second order size
+                  example: "1000"
+      responses:
+        '200':
+          description: IFDOCO order placed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: IFDOCO order placement failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
