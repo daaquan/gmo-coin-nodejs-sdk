@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: GMO Coin FX trading API microservice with comprehensive order management and streaming capabilities
 servers:
-  - url: http://localhost:9100
+  - url: http://localhost:3000
     description: Local development server
 components:
   schemas:
