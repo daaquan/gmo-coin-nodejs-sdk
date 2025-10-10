@@ -105,7 +105,7 @@ export class FxPrivateRestClient {
     ensureExecFields(body.firstExecutionType, { limitPrice: body.firstPrice, stopPrice: body.firstStopPrice });
     // OCO requires two prices (limit + stop)
     if (!body.secondLimitPrice || !body.secondStopPrice) throw new Error('IFDOCO requires secondLimitPrice and secondStopPrice');
-    return this._post<T.IfdocoOrderResp>(`${V}/ifdocoOrder`, body);
+    return this._post<T.IfdocoOrderResp>(`${V}/ifoOrder`, body);
   }
   changeOrder(body: T.ChangeOrderReq) {
     return this._post<T.ChangeOrderResp>(`${V}/changeOrder`, body);
@@ -114,7 +114,7 @@ export class FxPrivateRestClient {
     return this._post<T.ChangeIfdResp>(`${V}/changeIfdOrder`, body);
   }
   changeIfdocoOrder(body: T.ChangeIfdocoReq) {
-    return this._post<T.ChangeIfdocoResp>(`${V}/changeIfdocoOrder`, body);
+    return this._post<T.ChangeIfdocoResp>(`${V}/changeIfoOrder`, body);
   }
   cancelOrders(body: T.CancelOrdersReq) {
     return this._post<T.CancelOrdersResp>(`${V}/cancelOrders`, body);
