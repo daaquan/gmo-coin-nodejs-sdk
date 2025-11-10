@@ -1,7 +1,8 @@
-GMO Coin Forex (FX) Private API SDK (Node.js/TypeScript)
+GMO Coin Private API SDK for Forex and Cryptocurrency (Node.js/TypeScript)
 
 Overview
-- Typed, minimal-deps client for FX Private REST and Private WebSocket.
+- Typed, minimal-deps client for Forex and Crypto Private REST and WebSocket APIs.
+- Supports both Forex (FX) and Cryptocurrency trading.
 - Requires Node 18+ (uses built-in `fetch`). Runtime dep: `ws`.
 
 Quick Start
@@ -19,7 +20,7 @@ Quick Start
 - Run examples: `npm run examples:rest` or `npm run examples:ws`
 
 Basic Usage — REST
-- Import: `import { FxPrivateRestClient } from 'fx-sdk'` (when used as a package) or `import { FxPrivateRestClient } from './src/rest.js'` when using in this repo directly.
+- Import: `import { FxPrivateRestClient } from 'gmo-coin-sdk'` (when used as a package) or `import { FxPrivateRestClient } from './src/rest.js'` when using in this repo directly.
 - Example:
 
   ```ts

@@ -1,7 +1,8 @@
-GMOコイン FX Private API SDK (Node.js/TypeScript)
+GMOコイン Private API SDK（Forex・暗号資産対応）(Node.js/TypeScript)
 
 概要
-- GMOコインのFX Private RESTおよびPrivate WebSocket向けの型付き・最小依存のSDKです。
+- GMOコインのForex・暗号資産 Private RESTおよびPrivate WebSocket向けの型付き・最小依存のSDKです。
+- ForexおよびCryptocurrency取引の両方に対応しています。
 - Node 18+ が必要です（組み込みの `fetch` を使用）。ランタイム依存は `ws` のみ。
 
 クイックスタート
@@ -19,7 +20,7 @@ GMOコイン FX Private API SDK (Node.js/TypeScript)
 - サンプル実行: `npm run examples:rest` または `npm run examples:ws`
 
 基本的な使い方 — REST
-- インポート: パッケージとして使う場合は `import { FxPrivateRestClient } from 'fx-sdk'`。このリポジトリを直接使う場合は `import { FxPrivateRestClient } from './src/rest.js'`。
+- インポート: パッケージとして使う場合は `import { FxPrivateRestClient } from 'gmo-coin-sdk'`。このリポジトリを直接使う場合は `import { FxPrivateRestClient } from './src/rest.js'`。
 - 例:
 
   ```ts
