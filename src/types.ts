@@ -176,3 +176,68 @@ export type CloseOrderResp = ApiEnvelope<ActiveOrder[]>;
 /** WS auth lifecycle */
 export type CreateWsTokenResp = ApiEnvelope<{ token: string; expireAt: string }>;
 
+/** ========== CRYPTO API TYPES ========== */
+
+/** Crypto specific types */
+export interface CryptoAsset {
+  symbol: string;
+  amount: string;
+  available: string;
+}
+export type CryptoAssetsResp = ApiEnvelope<CryptoAsset[]>;
+
+/** Crypto Order types */
+export interface CryptoOrderReq {
+  symbol: string;
+  side: Side; // 'BUY' | 'SELL'
+  executionType: 'MARKET' | 'LIMIT' | 'STOP';
+  size: string;
+  price?: string; // required for LIMIT
+  losscutPrice?: string; // for STOP/OCO
+  timeInForce?: 'FAK' | 'GTC'; // default FAK for market, GTC for limit
+}
+export type CryptoOrderResp = ApiEnvelope<{ rootOrderId: string }>;
+
+/** Crypto Open Positions */
+export interface CryptoOpenPosition {
+  symbol: string;
+  sumSize: string;
+  avgPrice: string;
+  sumPrice: string;
+  side?: Side;
+}
+export type CryptoOpenPositionsResp = ApiEnvelope<CryptoOpenPosition[]>;
+
+/** Crypto Active Orders */
+export interface CryptoActiveOrder {
+  rootOrderId: string;
+  orderId: string;
+  symbol: string;
+  side: Side;
+  executionType: 'MARKET' | 'LIMIT' | 'STOP';
+  size: string;
+  price?: string;
+  losscutPrice?: string;
+  status: 'WAITING' | 'ORDERED' | 'EXECUTED' | 'EXPIRED';
+  timestamp: string;
+}
+export type CryptoActiveOrdersResp = ApiEnvelope<CryptoActiveOrder[]>;
+
+/** Crypto Executions */
+export interface CryptoExecution {
+  executionId: string;
+  orderId: string;
+  symbol: string;
+  side: Side;
+  executedPrice: string;
+  executedSize: string;
+  timestamp: string;
+}
+export type CryptoExecutionsResp = ApiEnvelope<CryptoExecution[]>;
+
+/** Crypto Cancel Order */
+export interface CryptoCancelOrderReq {
+  orderId: string;
+}
+export type CryptoCancelOrderResp = ApiEnvelope<{ orderId: string }>;
+

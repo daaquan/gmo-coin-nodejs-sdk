@@ -12,7 +12,8 @@ interface ErrorResponse {
   };
 }
 
-const BASE = 'https://forex-api.coin.z.com/private';
+const FOREX_BASE = 'https://forex-api.coin.z.com/private';
+const CRYPTO_BASE = 'https://api.coin.z.com/v1';
 const V = '/v1';
 
 function ensureExecFields(execType: T.ExecType, body: { limitPrice?: string; stopPrice?: string; oco?: { limitPrice: string; stopPrice: string } }) {
@@ -36,7 +37,7 @@ function errText(method: string, path: string, res: Response, json: Record<strin
 }
 
 export class FxPrivateRestClient {
-  constructor(private apiKey: string, private secret: string, private baseUrl = BASE) {
+  constructor(private apiKey: string, private secret: string, private baseUrl = FOREX_BASE) {
     if (!apiKey || !secret) {
       throw new Error('FxPrivateRestClient: Missing API credentials. Set FX_API_KEY and FX_API_SECRET.');
     }
@@ -126,5 +127,136 @@ export class FxPrivateRestClient {
     if (!body.settlePosition?.length) throw new Error('closeOrder requires at least one settlePosition');
     ensureExecFields(body.executionType, { limitPrice: body.limitPrice, stopPrice: body.stopPrice });
     return this._post<T.CloseOrderResp>(`${V}/closeOrder`, body);
+  }
+}
+
+/**
+ * GMO Coin Crypto API Private REST Client
+ * Handles cryptocurrency trading on GMO Coin
+ */
+export class CryptoPrivateRestClient {
+  constructor(private apiKey: string, private secret: string, private baseUrl = CRYPTO_BASE) {
+    if (!apiKey || !secret) {
+      throw new Error('CryptoPrivateRestClient: Missing API credentials. Set CRYPTO_API_KEY and CRYPTO_API_SECRET.');
+    }
+  }
+
+  private async _get<TResp>(path: string, qs?: Record<string, string | undefined>): Promise<TResp> {
+    await getGate.wait();
+    const url = new URL(this.baseUrl + path);
+    if (qs) for (const [k, v] of Object.entries(qs)) if (v != null) url.searchParams.set(k, v);
+    const headers = buildHeaders(this.apiKey, this.secret, 'GET', path, '');
+    const res = await fetch(url, { headers });
+    const json = await parseJson(res);
+    if (!res.ok || json?.status !== 0) throw new Error(errText('GET', path, res, json));
+    return json as TResp;
+  }
+
+  private async _post<TResp>(path: string, body: unknown): Promise<TResp> {
+    await postGate.wait();
+    const payload = JSON.stringify(body ?? {});
+    const headers = buildHeaders(this.apiKey, this.secret, 'POST', path, payload);
+    const res = await fetch(this.baseUrl + path, { method: 'POST', headers, body: payload });
+    const json = await parseJson(res);
+    if (!res.ok || json?.status !== 0) throw new Error(errText('POST', path, res, json));
+    return json as TResp;
+  }
+
+  private async _delete<TResp>(path: string): Promise<TResp> {
+    await postGate.wait();
+    const headers = buildHeaders(this.apiKey, this.secret, 'DELETE', path, '');
+    const res = await fetch(this.baseUrl + path, { method: 'DELETE', headers });
+    const json = await parseJson(res);
+    if (!res.ok || json?.status !== 0) throw new Error(errText('DELETE', path, res, json));
+    return json as TResp;
+  }
+
+  /** ====== ACCOUNT ====== */
+  getAssets() {
+    return this._get<T.CryptoAssetsResp>('/account/assets');
+  }
+
+  /** ====== QUERIES ====== */
+  getOpenPositions(q?: { symbol?: string; pageSize?: string }) {
+    return this._get<T.CryptoOpenPositionsResp>('/openPositions', q);
+  }
+
+  getActiveOrders(q?: { symbol?: string; pageSize?: string }) {
+    return this._get<T.CryptoActiveOrdersResp>('/activeOrders', q);
+  }
+
+  getExecutions(q?: { symbol?: string; orderId?: string; pageSize?: string }) {
+    return this._get<T.CryptoExecutionsResp>('/executions', q);
+  }
+
+  /** ====== ORDERS ====== */
+  placeOrder(body: T.CryptoOrderReq) {
+    if (body.executionType === 'LIMIT' && !body.price) {
+      throw new Error('LIMIT orders require price field');
+    }
+    if (body.executionType === 'STOP' && !body.losscutPrice) {
+      throw new Error('STOP orders require losscutPrice field');
+    }
+    return this._post<T.CryptoOrderResp>('/orders', body);
+  }
+
+  cancelOrder(orderId: string) {
+    return this._delete<T.CryptoCancelOrderResp>(`/orders/${orderId}`);
+  }
+
+  /** ====== CLOSE POSITION ====== */
+  async closePosition(symbol: string, size: string, side?: 'BUY' | 'SELL') {
+    // Get current position to determine close side if not provided
+    let closeSide = side;
+    if (!closeSide) {
+      const resp = await this.getOpenPositions({ symbol, pageSize: '1' });
+      const positions = resp.data;
+      if (!positions || positions.length === 0) {
+        throw new Error(`No open position for ${symbol}`);
+      }
+      const position = positions[0];
+      const currentSize = parseFloat(position.sumSize);
+      closeSide = currentSize > 0 ? 'SELL' : 'BUY';
+    }
+
+    // Place market order to close
+    return this.placeOrder({
+      symbol,
+      side: closeSide,
+      executionType: 'MARKET',
+      size: size,
+      timeInForce: 'FAK',
+    });
+  }
+
+  /** ====== SYMBOLS ====== */
+  getSupportedSymbols(): string[] {
+    return [
+      'BTC',
+      'ETH',
+      'BCH',
+      'LTC',
+      'XRP',
+      'XEM',
+      'XLM',
+      'BAT',
+      'OMG',
+      'XTZ',
+      'QTUM',
+      'ENJ',
+      'DOT',
+      'ATOM',
+      'ADA',
+      'MKR',
+      'DAI',
+      'LINK',
+      'SOL',
+      'MATIC',
+      'AAVE',
+      'UNI',
+      'AVAX',
+      'DOGE',
+      'SHIB',
+    ];
   }
 }
