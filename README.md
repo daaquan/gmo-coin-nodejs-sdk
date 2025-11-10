@@ -9,17 +9,21 @@ Quick Start
 - Prereqs: Node 18+ and npm.
 - Install deps: `npm install`
 - Build: `npm run build`
-- Set environment variables:
-  - macOS/Linux (one-shot): `FX_API_KEY=yourKey FX_API_SECRET=yourSecret npm run examples:rest`
+- Set environment variables (FX and/or Crypto):
+  - macOS/Linux (one-shot): `FX_API_KEY=yourFxKey FX_API_SECRET=yourFxSecret CRYPTO_API_KEY=yourCryptoKey CRYPTO_API_SECRET=yourCryptoSecret npm run examples:rest`
   - macOS/Linux (export then run):
-    - `export FX_API_KEY=yourKey`
-    - `export FX_API_SECRET=yourSecret`
+    - `export FX_API_KEY=yourFxKey`
+    - `export FX_API_SECRET=yourFxSecret`
+    - `export CRYPTO_API_KEY=yourCryptoKey`
+    - `export CRYPTO_API_SECRET=yourCryptoSecret`
     - `npm run examples:rest`
-  - Windows PowerShell: `$env:FX_API_KEY="yourKey"; $env:FX_API_SECRET="yourSecret"; npm run examples:rest`
-  - Windows cmd.exe: `set FX_API_KEY=yourKey && set FX_API_SECRET=yourSecret && npm run examples:rest`
+  - Windows PowerShell: `$env:FX_API_KEY="yourFxKey"; $env:FX_API_SECRET="yourFxSecret"; $env:CRYPTO_API_KEY="yourCryptoKey"; $env:CRYPTO_API_SECRET="yourCryptoSecret"; npm run examples:rest`
+  - Windows cmd.exe: `set FX_API_KEY=yourFxKey && set FX_API_SECRET=yourFxSecret && set CRYPTO_API_KEY=yourCryptoKey && set CRYPTO_API_SECRET=yourCryptoSecret && npm run examples:rest`
 - Run examples: `npm run examples:rest` or `npm run examples:ws`
 
 Basic Usage — REST
+
+**Forex (FX):**
 - Import: `import { FxPrivateRestClient } from 'gmo-coin-sdk'` (when used as a package) or `import { FxPrivateRestClient } from './src/rest.js'` when using in this repo directly.
 - Example:
 
@@ -43,7 +47,33 @@ Basic Usage — REST
   if (ids.length) await fx.cancelOrders({ rootOrderIds: ids });
   ```
 
+**Cryptocurrency (Crypto):**
+- Import: `import { CryptoPrivateRestClient } from 'gmo-coin-sdk'` (when used as a package) or `import { CryptoPrivateRestClient } from './src/rest.js'` when using in this repo directly.
+- Example:
+
+  ```ts
+  import { CryptoPrivateRestClient } from './src/rest.js';
+
+  const crypto = new CryptoPrivateRestClient(process.env.CRYPTO_API_KEY!, process.env.CRYPTO_API_SECRET!);
+
+  // Get account assets
+  const assets = await crypto.getAssets();
+  console.log(assets.data);
+
+  // Place an order
+  const placed = await crypto.placeOrder({
+    symbol: 'BTC', side: 'BUY', executionType: 'MARKET', size: '0.01'
+  });
+
+  // Cancel by orderId
+  if (placed.data.orderId) {
+    await crypto.cancelOrder({ orderId: placed.data.orderId });
+  }
+  ```
+
 Basic Usage — Private WebSocket
+
+**Forex (FX):**
 - Token lifecycle via REST helper, then connect with the token.
 - Example:
 
@@ -65,14 +95,36 @@ Basic Usage — Private WebSocket
   // await auth.revoke(token);
   ```
 
+**Cryptocurrency (Crypto):**
+- Token lifecycle via REST helper, then connect with the token.
+- Example:
+
+  ```ts
+  import { CryptoPrivateWsAuth, CryptoPrivateWsClient } from './src/ws-private.js';
+
+  const auth = new CryptoPrivateWsAuth(process.env.CRYPTO_API_KEY!, process.env.CRYPTO_API_SECRET!);
+  const token = (await auth.create()).data.token;
+
+  const ws = new CryptoPrivateWsClient(token);
+  await ws.connect();
+  ws.onMessage(msg => console.log('WS:', msg));
+
+  await ws.subscribe('execution');
+  await ws.subscribe('order');
+
+  // ...later
+  await ws.close();
+  // await auth.revoke(token);
+  ```
+
 Private WS Notes
 - Requires a token from `POST /v1/ws-auth`. If token creation fails:
   - Verify API key/secret and that your client IP is allowlisted in GMO Coin settings.
   - You can pass a pre-created token via `WS_TOKEN` env var to the example.
 
 Exports
-- `FxPrivateRestClient` for REST.
-- `FxPrivateWsAuth` and `FxPrivateWsClient` for Private WS.
+- `FxPrivateRestClient` and `CryptoPrivateRestClient` for REST.
+- `FxPrivateWsAuth`, `FxPrivateWsClient`, `CryptoPrivateWsAuth`, and `CryptoPrivateWsClient` for Private WS.
 - Types in `src/types.ts`.
 
 Operational Notes
@@ -96,7 +148,7 @@ Placing Orders in the REST Example
 
 Microservice Usage
 - Start the service:
-  - `cp .env.example .env` and fill `FX_API_KEY`, `FX_API_SECRET` (and optional `SERVICE_AUTH_TOKEN`).
+  - `cp .env.example .env` and fill `FX_API_KEY`, `FX_API_SECRET`, `CRYPTO_API_KEY`, `CRYPTO_API_SECRET` (and optional `SERVICE_AUTH_TOKEN`).
   - `npm run start:service`
 - Endpoints (local service):
   - `GET /health`
