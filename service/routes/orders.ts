@@ -1,19 +1,22 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { FxPrivateRestClient } from '../../src/rest.js';
+import { FxPrivateRestClient, CryptoPrivateRestClient } from '../../src/rest.js';
 import { gmoGetGate, gmoPostGate } from '../lib/rateLimiter.js';
 import { getIdempotent, setIdempotent } from '../lib/idempotency.js';
 import { getCreds, tenantFromReq, type TenantQuery } from '../lib/tenants.js';
 import { mapGmoError } from '../lib/errors.js';
+import { determineClientType, isValidExecutionType } from '../lib/clientRouter.js';
 
 const LimitOrderBody = z.object({
   symbol: z.string(),
   side: z.enum(['BUY', 'SELL']),
   size: z.string(),
-  limitPrice: z.string(),
+  limitPrice: z.string().optional(), // for FX
+  price: z.string().optional(), // for Crypto
   clientOrderId: z.string().optional(),
-  expireDate: z.string().optional(),
-  settleType: z.enum(['OPEN', 'CLOSE']).optional(),
+  expireDate: z.string().optional(), // FX only
+  settleType: z.enum(['OPEN', 'CLOSE']).optional(), // FX only
+  timeInForce: z.enum(['FAK', 'GTC']).optional(), // Crypto only
 });
 
 const SpeedOrderBody = z.object({
@@ -26,7 +29,14 @@ const SpeedOrderBody = z.object({
   isHedgeable: z.boolean().optional(),
 });
 
-const CancelOrdersBody = z.object({ rootOrderIds: z.array(z.number().int()).min(1) });
+const CancelOrdersBody = z.object({
+  symbol: z.string(),
+  rootOrderIds: z.array(z.number().int()).optional(), // for FX
+  orderId: z.string().optional(), // for Crypto
+}).refine(
+  (data) => data.rootOrderIds?.length || data.orderId,
+  'Either rootOrderIds (for FX) or orderId (for Crypto) is required'
+);
 
 const OrderBody = z.object({
   symbol: z.string(),
@@ -94,25 +104,43 @@ export function registerOrderRoutes(app: FastifyInstance) {
       try {
         const tenant = tenantFromReq(req.headers, req.query);
         const { apiKey, secret } = getCreds(tenant);
-        const fx = new FxPrivateRestClient(apiKey, secret);
         const body = LimitOrderBody.parse(req.body);
 
-      const idem = (req.headers['idempotency-key'] as string) || undefined;
-      const cached = await getIdempotent(idem);
-      if (cached) return reply.status(cached.status).send(cached.body);
+        const clientType = determineClientType(body.symbol);
 
-      const placed = await fx.placeOrder({
-        symbol: body.symbol,
-        side: body.side,
-        size: body.size,
-        executionType: 'LIMIT',
-        limitPrice: body.limitPrice,
-        clientOrderId: body.clientOrderId,
-        expireDate: body.expireDate,
-        settleType: body.settleType,
-      });
-      if (idem) await setIdempotent(idem, 200, placed);
-      return reply.send(placed);
+        const idem = (req.headers['idempotency-key'] as string) || undefined;
+        const cached = await getIdempotent(idem);
+        if (cached) return reply.status(cached.status).send(cached.body);
+
+        let placed;
+        if (clientType === 'fx') {
+          if (!body.limitPrice) throw new Error('FX LIMIT orders require limitPrice');
+          const fx = new FxPrivateRestClient(apiKey, secret);
+          placed = await fx.placeOrder({
+            symbol: body.symbol,
+            side: body.side,
+            size: body.size,
+            executionType: 'LIMIT',
+            limitPrice: body.limitPrice,
+            clientOrderId: body.clientOrderId,
+            expireDate: body.expireDate,
+            settleType: body.settleType,
+          });
+        } else {
+          if (!body.price) throw new Error('Crypto LIMIT orders require price');
+          const crypto = new CryptoPrivateRestClient(apiKey, secret);
+          placed = await crypto.placeOrder({
+            symbol: body.symbol,
+            side: body.side,
+            executionType: 'LIMIT',
+            size: body.size,
+            price: body.price,
+            timeInForce: body.timeInForce,
+          });
+        }
+
+        if (idem) await setIdempotent(idem, 200, placed);
+        return reply.send(placed);
       } catch (e) {
         const err = mapGmoError(e);
         return reply.status(400).send({ error: 'order_limit_failed', detail: String(err) });
@@ -159,9 +187,21 @@ export function registerOrderRoutes(app: FastifyInstance) {
       try {
         const tenant = tenantFromReq(req.headers, req.query);
         const { apiKey, secret } = getCreds(tenant);
-        const fx = new FxPrivateRestClient(apiKey, secret);
         const body = CancelOrdersBody.parse(req.body);
-        const res = await fx.cancelOrders({ rootOrderIds: body.rootOrderIds });
+
+        const clientType = determineClientType(body.symbol);
+
+        let res;
+        if (clientType === 'fx') {
+          if (!body.rootOrderIds) throw new Error('FX orders require rootOrderIds');
+          const fx = new FxPrivateRestClient(apiKey, secret);
+          res = await fx.cancelOrders({ rootOrderIds: body.rootOrderIds });
+        } else {
+          if (!body.orderId) throw new Error('Crypto orders require orderId');
+          const crypto = new CryptoPrivateRestClient(apiKey, secret);
+          res = await crypto.cancelOrder(body.orderId);
+        }
+
         return reply.send(res);
       } catch (e) {
         const err = mapGmoError(e);
