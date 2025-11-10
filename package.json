@@ -1,7 +1,7 @@
 {
-  "name": "fx-sdk",
+  "name": "gmo-coin-sdk",
   "version": "0.1.0",
-  "description": "GMO Coin Forex (FX) Private API SDK (Node.js/TypeScript)",
+  "description": "GMO Coin Private API SDK for Forex and Cryptocurrency (Node.js/TypeScript)",
   "type": "module",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",

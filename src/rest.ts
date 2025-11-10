@@ -66,67 +66,67 @@ export class FxPrivateRestClient {
 
   /** ====== ACCOUNT ====== */
   getAssets() {
-    return this._get<T.AssetsResp>(`${V}/account/assets`);
+    return this._get<T.FxAssetResp>(`${V}/account/assets`);
   }
 
   /** ====== QUERIES ====== */
   getActiveOrders(q?: { symbol?: string; prevId?: string; count?: string }) {
-    return this._get<T.ActiveOrdersResp>(`${V}/activeOrders`, q);
+    return this._get<T.FxActiveOrdersResp>(`${V}/activeOrders`, q);
   }
   getExecutions(q: { executionId: string }) {
-    return this._get<T.ExecutionsResp>(`${V}/executions`, q);
+    return this._get<T.FxExecutionsResp>(`${V}/executions`, q);
   }
   getLatestExecutions(q: { symbol: string; count?: string }) {
-    return this._get<T.LatestExecsResp>(`${V}/latestExecutions`, q);
+    return this._get<T.FxLatestExecsResp>(`${V}/latestExecutions`, q);
   }
   getOpenPositions(q?: { symbol?: string; prevId?: string; count?: string }) {
-    return this._get<T.OpenPositionsResp>(`${V}/openPositions`, q);
+    return this._get<T.FxOpenPositionsResp>(`${V}/openPositions`, q);
   }
   getPositionSummary(q?: { symbol?: string }) {
-    return this._get<T.PositionSummaryResp>(`${V}/positionSummary`, q);
+    return this._get<T.FxPositionSummaryResp>(`${V}/positionSummary`, q);
   }
 
   /** ====== ORDERS ====== */
-  speedOrder(body: T.SpeedOrderReq) {
-    return this._post<T.SpeedOrderResp>(`${V}/speedOrder`, body);
+  speedOrder(body: T.FxSpeedOrderReq) {
+    return this._post<T.FxSpeedOrderResp>(`${V}/speedOrder`, body);
   }
-  placeOrder(body: T.OrderReq) {
+  placeOrder(body: T.FxOrderReq) {
     ensureExecFields(body.executionType, body);
     if (body.executionType === 'LIMIT' && !body.limitPrice) throw new Error('LIMIT order requires limitPrice');
     if (body.executionType === 'STOP' && !body.stopPrice) throw new Error('STOP order requires stopPrice');
     if (body.executionType === 'OCO' && (!body.oco?.limitPrice || !body.oco?.stopPrice)) throw new Error('OCO order requires oco.limitPrice and oco.stopPrice');
-    return this._post<T.OrderResp>(`${V}/order`, body);
+    return this._post<T.FxOrderResp>(`${V}/order`, body);
   }
-  placeIfdOrder(body: T.IfdOrderReq) {
+  placeIfdOrder(body: T.FxIfdOrderReq) {
     ensureExecFields(body.firstExecutionType, { limitPrice: body.firstPrice, stopPrice: body.firstStopPrice });
     ensureExecFields(body.secondExecutionType, { limitPrice: body.secondPrice, stopPrice: body.secondStopPrice });
-    return this._post<T.IfdOrderResp>(`${V}/ifdOrder`, body);
+    return this._post<T.FxIfdOrderResp>(`${V}/ifdOrder`, body);
   }
-  placeIfdocoOrder(body: T.IfdocoOrderReq) {
+  placeIfdocoOrder(body: T.FxIfdocoOrderReq) {
     ensureExecFields(body.firstExecutionType, { limitPrice: body.firstPrice, stopPrice: body.firstStopPrice });
     // OCO requires two prices (limit + stop)
     if (!body.secondLimitPrice || !body.secondStopPrice) throw new Error('IFDOCO requires secondLimitPrice and secondStopPrice');
-    return this._post<T.IfdocoOrderResp>(`${V}/ifoOrder`, body);
+    return this._post<T.FxIfdocoOrderResp>(`${V}/ifoOrder`, body);
   }
-  changeOrder(body: T.ChangeOrderReq) {
-    return this._post<T.ChangeOrderResp>(`${V}/changeOrder`, body);
+  changeOrder(body: T.FxChangeOrderReq) {
+    return this._post<T.FxChangeOrderResp>(`${V}/changeOrder`, body);
   }
-  changeIfdOrder(body: T.ChangeIfdReq) {
-    return this._post<T.ChangeIfdResp>(`${V}/changeIfdOrder`, body);
+  changeIfdOrder(body: T.FxChangeIfdReq) {
+    return this._post<T.FxChangeIfdResp>(`${V}/changeIfdOrder`, body);
   }
-  changeIfdocoOrder(body: T.ChangeIfdocoReq) {
-    return this._post<T.ChangeIfdocoResp>(`${V}/changeIfoOrder`, body);
+  changeIfdocoOrder(body: T.FxChangeIfdocoReq) {
+    return this._post<T.FxChangeIfdocoResp>(`${V}/changeIfoOrder`, body);
   }
-  cancelOrders(body: T.CancelOrdersReq) {
-    return this._post<T.CancelOrdersResp>(`${V}/cancelOrders`, body);
+  cancelOrders(body: T.FxCancelOrdersReq) {
+    return this._post<T.FxCancelOrdersResp>(`${V}/cancelOrders`, body);
   }
-  cancelBulk(body: T.CancelBulkReq) {
-    return this._post<T.CancelBulkResp>(`${V}/cancelBulkOrder`, body);
+  cancelBulk(body: T.FxCancelBulkReq) {
+    return this._post<T.FxCancelBulkResp>(`${V}/cancelBulkOrder`, body);
   }
-  closeOrder(body: T.CloseOrderReq) {
+  closeOrder(body: T.FxCloseOrderReq) {
     if (!body.settlePosition?.length) throw new Error('closeOrder requires at least one settlePosition');
     ensureExecFields(body.executionType, { limitPrice: body.limitPrice, stopPrice: body.stopPrice });
-    return this._post<T.CloseOrderResp>(`${V}/closeOrder`, body);
+    return this._post<T.FxCloseOrderResp>(`${V}/closeOrder`, body);
   }
 }
 

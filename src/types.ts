@@ -9,7 +9,7 @@ export interface ApiEnvelope<T> {
 }
 
 /** /v1/account/assets */
-export interface Assets {
+export interface FxAsset {
   equity: string;
   availableAmount: string;
   balance: string;
@@ -20,10 +20,10 @@ export interface Assets {
   totalSwap: string;
   transferableAmount: string;
 }
-export type AssetsResp = ApiEnvelope<Assets>;
+export type FxAssetResp = ApiEnvelope<FxAsset>;
 
 /** Orders common */
-export interface ActiveOrder {
+export interface FxActiveOrder {
   rootOrderId: number;
   clientOrderId?: string;
   orderId: number;
@@ -40,7 +40,7 @@ export interface ActiveOrder {
   timestamp: string;
 }
 
-export interface Execution {
+export interface FxExecution {
   executionId: string;
   orderId: string;
   symbol: string;
@@ -50,30 +50,30 @@ export interface Execution {
   timestamp: string;
 }
 
-export interface PositionSummary {
+export interface FxPositionSummary {
   symbol: string;
   side: Side;
   size: string;
   price: string;
 }
 
-export type ActiveOrdersResp = ApiEnvelope<ActiveOrder[]>;
-export type ExecutionsResp = ApiEnvelope<Execution[]>;
-export type LatestExecsResp = ApiEnvelope<Execution[]>;
+export type FxActiveOrdersResp = ApiEnvelope<FxActiveOrder[]>;
+export type FxExecutionsResp = ApiEnvelope<FxExecution[]>;
+export type FxLatestExecsResp = ApiEnvelope<FxExecution[]>;
 
 /** Positions */
-export interface OpenPosition {
+export interface FxOpenPosition {
   positionId: number;
   symbol: string;
   side: Side;
   size: string;
   price: string;
 }
-export type OpenPositionsResp = ApiEnvelope<OpenPosition[]>;
-export type PositionSummaryResp = ApiEnvelope<PositionSummary[]>;
+export type FxOpenPositionsResp = ApiEnvelope<FxOpenPosition[]>;
+export type FxPositionSummaryResp = ApiEnvelope<FxPositionSummary[]>;
 
 /** Place orders */
-export interface OrderReq {
+export interface FxOrderReq {
   symbol: string;
   side: Side;
   size: string;
@@ -85,9 +85,9 @@ export interface OrderReq {
   expireDate?: string; // optional yyyymmdd
   settleType?: SettleType; // default OPEN
 }
-export type OrderResp = ApiEnvelope<ActiveOrder[]>;
+export type FxOrderResp = ApiEnvelope<FxActiveOrder[]>;
 
-export interface SpeedOrderReq {
+export interface FxSpeedOrderReq {
   symbol: string;
   side: Side;
   clientOrderId?: string;
@@ -96,9 +96,9 @@ export interface SpeedOrderReq {
   lowerBound?: string; // SELL protective min
   isHedgeable?: boolean;
 }
-export type SpeedOrderResp = ApiEnvelope<ActiveOrder[]>;
+export type FxSpeedOrderResp = ApiEnvelope<FxActiveOrder[]>;
 
-export interface IfdOrderReq {
+export interface FxIfdOrderReq {
   symbol: string;
   clientOrderId?: string;
   firstSide: Side;
@@ -111,9 +111,9 @@ export interface IfdOrderReq {
   secondPrice?: string;
   secondStopPrice?: string;
 }
-export type IfdOrderResp = ApiEnvelope<ActiveOrder[]>;
+export type FxIfdOrderResp = ApiEnvelope<FxActiveOrder[]>;
 
-export interface IfdocoOrderReq {
+export interface FxIfdocoOrderReq {
   symbol: string;
   clientOrderId?: string;
   firstSide: Side;
@@ -127,42 +127,42 @@ export interface IfdocoOrderReq {
   secondStopPrice?: string;
   secondSize: string;
 }
-export type IfdocoOrderResp = ApiEnvelope<ActiveOrder[]>;
+export type FxIfdocoOrderResp = ApiEnvelope<FxActiveOrder[]>;
 
-export interface ChangeOrderReq {
+export interface FxChangeOrderReq {
   orderId?: number;
   clientOrderId?: string;
   price?: string;
 }
-export type ChangeOrderResp = ApiEnvelope<ActiveOrder[]>;
+export type FxChangeOrderResp = ApiEnvelope<FxActiveOrder[]>;
 
-export interface ChangeIfdReq {
+export interface FxChangeIfdReq {
   rootOrderId?: number;
   clientOrderId?: string;
   firstPrice?: string;
   secondPrice?: string;
 }
-export interface ChangeIfdocoReq {
+export interface FxChangeIfdocoReq {
   rootOrderId?: number;
   clientOrderId?: string;
   firstPrice?: string;
   secondLimitPrice?: string;
   secondStopPrice?: string;
 }
-export type ChangeIfdResp = ApiEnvelope<ActiveOrder[]>;
-export type ChangeIfdocoResp = ApiEnvelope<ActiveOrder[]>;
+export type FxChangeIfdResp = ApiEnvelope<FxActiveOrder[]>;
+export type FxChangeIfdocoResp = ApiEnvelope<FxActiveOrder[]>;
 
-export interface CancelOrdersReq { rootOrderIds: number[]; }
-export type CancelOrdersResp = ApiEnvelope<ActiveOrder[]>;
+export interface FxCancelOrdersReq { rootOrderIds: number[]; }
+export type FxCancelOrdersResp = ApiEnvelope<FxActiveOrder[]>;
 
-export interface CancelBulkReq {
+export interface FxCancelBulkReq {
   symbols?: string[];
   side?: Side;
   settleType?: SettleType;
 }
-export type CancelBulkResp = ApiEnvelope<null>;
+export type FxCancelBulkResp = ApiEnvelope<null>;
 
-export interface CloseOrderReq {
+export interface FxCloseOrderReq {
   symbol: string;
   side: Side;
   clientOrderId?: string;
@@ -171,10 +171,10 @@ export interface CloseOrderReq {
   stopPrice?: string;
   settlePosition: { positionId: number; size: string }[];
 }
-export type CloseOrderResp = ApiEnvelope<ActiveOrder[]>;
+export type FxCloseOrderResp = ApiEnvelope<FxActiveOrder[]>;
 
 /** WS auth lifecycle */
-export type CreateWsTokenResp = ApiEnvelope<{ token: string; expireAt: string }>;
+export type FxCreateWsTokenResp = ApiEnvelope<{ token: string; expireAt: string }>;
 
 /** ========== CRYPTO API TYPES ========== */
 
