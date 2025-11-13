@@ -13,7 +13,7 @@ interface ErrorResponse {
 }
 
 const FOREX_BASE = 'https://forex-api.coin.z.com/private';
-const CRYPTO_BASE = 'https://api.coin.z.com/v1';
+const CRYPTO_BASE = 'https://api.coin.z.com/private';
 const V = '/v1';
 
 function ensureExecFields(execType: T.ExecType, body: { limitPrice?: string; stopPrice?: string; oco?: { limitPrice: string; stopPrice: string } }) {
@@ -173,20 +173,28 @@ export class CryptoPrivateRestClient {
 
   /** ====== ACCOUNT ====== */
   getAssets() {
-    return this._get<T.CryptoAssetsResp>('/account/assets');
+    return this._get<T.CryptoAssetsResp>('/v1/account/assets');
   }
 
   /** ====== QUERIES ====== */
   getOpenPositions(q?: { symbol?: string; pageSize?: string }) {
-    return this._get<T.CryptoOpenPositionsResp>('/openPositions', q);
+    return this._get<T.CryptoOpenPositionsResp>('/v1/openPositions', q);
   }
 
   getActiveOrders(q?: { symbol?: string; pageSize?: string }) {
-    return this._get<T.CryptoActiveOrdersResp>('/activeOrders', q);
+    return this._get<T.CryptoActiveOrdersResp>('/v1/activeOrders', q);
   }
 
   getExecutions(q?: { symbol?: string; orderId?: string; pageSize?: string }) {
-    return this._get<T.CryptoExecutionsResp>('/executions', q);
+    return this._get<T.CryptoExecutionsResp>('/v1/executions', q);
+  }
+
+  getLatestExecutions(q?: { symbol?: string; pageSize?: string }) {
+    return this._get<T.CryptoLatestExecutionsResp>('/v1/latestExecutions', q);
+  }
+
+  getPositionSummary(q?: { symbol?: string }) {
+    return this._get<T.CryptoPositionSummaryResp>('/v1/positionSummary', q);
   }
 
   /** ====== ORDERS ====== */
@@ -197,11 +205,24 @@ export class CryptoPrivateRestClient {
     if (body.executionType === 'STOP' && !body.losscutPrice) {
       throw new Error('STOP orders require losscutPrice field');
     }
-    return this._post<T.CryptoOrderResp>('/orders', body);
+    return this._post<T.CryptoOrderResp>('/v1/orders', body);
   }
 
   cancelOrder(orderId: string) {
-    return this._delete<T.CryptoCancelOrderResp>(`/orders/${orderId}`);
+    return this._delete<T.CryptoCancelOrderResp>(`/v1/orders/${orderId}`);
+  }
+
+
+  changeOrder(body: T.CryptoChangeOrderReq) {
+    return this._post<T.CryptoChangeOrderResp>('/v1/changeOrder', body);
+  }
+
+  cancelOrders(body: T.CryptoCancelOrdersReq) {
+    return this._post<T.CryptoCancelOrdersResp>('/v1/cancelOrders', body);
+  }
+
+  cancelBulk(body: T.CryptoCancelBulkReq) {
+    return this._post<T.CryptoCancelBulkResp>('/v1/cancelBulkOrder', body);
   }
 
   /** ====== CLOSE POSITION ====== */

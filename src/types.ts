@@ -241,3 +241,37 @@ export interface CryptoCancelOrderReq {
 }
 export type CryptoCancelOrderResp = ApiEnvelope<{ orderId: string }>;
 
+/** Crypto Latest Executions */
+export type CryptoLatestExecutionsResp = ApiEnvelope<CryptoExecution[]>;
+
+/** Crypto Position Summary */
+export interface CryptoPositionSummary {
+  symbol: string;
+  side: Side;
+  size: string;
+  price: string;
+}
+export type CryptoPositionSummaryResp = ApiEnvelope<CryptoPositionSummary[]>;
+
+/** Crypto Change Order */
+export interface CryptoChangeOrderReq {
+  orderId: string;
+  price?: string;
+  losscutPrice?: string;
+}
+export type CryptoChangeOrderResp = ApiEnvelope<CryptoActiveOrder>;
+
+/** Crypto Cancel Multiple Orders */
+export interface CryptoCancelOrdersReq { 
+  rootOrderIds: string[]; 
+}
+export type CryptoCancelOrdersResp = ApiEnvelope<CryptoActiveOrder[]>;
+
+/** Crypto Cancel Bulk Orders */
+export interface CryptoCancelBulkReq {
+  symbols?: string[];
+  side?: Side;
+  settleType?: 'OPEN' | 'CLOSE';
+}
+export type CryptoCancelBulkResp = ApiEnvelope<null>;
+

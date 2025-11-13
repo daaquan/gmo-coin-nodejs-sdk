@@ -327,6 +327,62 @@ describe('CryptoPrivateRestClient', () => {
     });
   });
 
+  describe('getLatestExecutions', () => {
+    it('should return latest executions', async () => {
+      const mockResponse = {
+        status: 0,
+        data: [
+          {
+            executionId: 'exec-200',
+            orderId: '67900',
+            symbol: 'BTC',
+            side: 'BUY' as const,
+            executedPrice: '45000.00',
+            executedSize: '0.1',
+            timestamp: '2025-01-01T02:00:00.000Z',
+          },
+        ],
+        responsetime: '2025-01-01T00:00:00.000Z',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(mockResponse),
+      });
+
+      const result = await client.getLatestExecutions({ symbol: 'BTC' });
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].symbol).toBe('BTC');
+    });
+  });
+
+  describe('getPositionSummary', () => {
+    it('should return position summary', async () => {
+      const mockResponse = {
+        status: 0,
+        data: [
+          {
+            symbol: 'BTC',
+            side: 'BUY' as const,
+            size: '1.5',
+            price: '45000.00',
+          },
+        ],
+        responsetime: '2025-01-01T00:00:00.000Z',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(mockResponse),
+      });
+
+      const result = await client.getPositionSummary({ symbol: 'BTC' });
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].symbol).toBe('BTC');
+      expect(result.data[0].size).toBe('1.5');
+    });
+  });
+
   describe('placeOrder', () => {
     it('should place MARKET order successfully', async () => {
       const mockResponse = {
@@ -477,6 +533,85 @@ describe('CryptoPrivateRestClient', () => {
       });
 
       await expect(client.cancelOrder('invalid-id')).rejects.toThrow();
+    });
+  });
+
+  describe('changeOrder', () => {
+    it('should change order successfully', async () => {
+      const mockResponse = {
+        status: 0,
+        data: {
+          rootOrderId: '12345',
+          orderId: '67890',
+          symbol: 'BTC',
+          side: 'BUY' as const,
+          executionType: 'LIMIT' as const,
+          size: '0.5',
+          price: '45000.00',
+          status: 'WAITING' as const,
+          timestamp: '2025-01-01T00:00:00.000Z',
+        },
+        responsetime: '2025-01-01T00:00:00.000Z',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(mockResponse),
+      });
+
+      const result = await client.changeOrder({
+        orderId: '67890',
+        price: '45000.00',
+      });
+      expect(result.data.orderId).toBe('67890');
+      expect(result.data.price).toBe('45000.00');
+    });
+  });
+
+  describe('cancelOrders', () => {
+    it('should cancel multiple orders successfully', async () => {
+      const mockResponse = {
+        status: 0,
+        data: [
+          {
+            rootOrderId: '12345',
+            orderId: '67890',
+            symbol: 'BTC',
+            side: 'BUY' as const,
+            executionType: 'LIMIT' as const,
+            size: '0.5',
+            status: 'WAITING' as const,
+            timestamp: '2025-01-01T00:00:00.000Z',
+          },
+        ],
+        responsetime: '2025-01-01T00:00:00.000Z',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(mockResponse),
+      });
+
+      const result = await client.cancelOrders({ rootOrderIds: ['12345', '12346'] });
+      expect(result.data).toHaveLength(1);
+    });
+  });
+
+  describe('cancelBulk', () => {
+    it('should cancel bulk orders successfully', async () => {
+      const mockResponse = {
+        status: 0,
+        data: null,
+        responsetime: '2025-01-01T00:00:00.000Z',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(mockResponse),
+      });
+
+      const result = await client.cancelBulk({ symbols: ['BTC'], side: 'BUY' });
+      expect(result.status).toBe(0);
     });
   });
 
