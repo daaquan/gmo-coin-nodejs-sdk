@@ -1,5 +1,6 @@
 import { buildHeaders } from './auth.js';
 import { getGate, postGate } from './rateLimiter.js';
+import { auditLogger } from './audit.js';
 import type * as T from './types.js';
 
 interface ErrorResponse {
@@ -102,11 +103,27 @@ abstract class BaseRestClient {
     const headers = buildHeaders(this.apiKey, this.secret, 'GET', path, '');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+    const startTime = Date.now();
+
     try {
       const res = await fetch(url, { headers, signal: controller.signal });
       const json = await parseJson(res);
+
+      const duration = Date.now() - startTime;
+      auditLogger.log('GET', path, res.status, duration, {
+        requestBody: undefined,
+        responseData: json?.status === 0 ? undefined : json, // Log errors only
+        error: !res.ok || json?.status !== 0 ? errText('GET', path, res, json) : undefined,
+      });
+
       if (!res.ok || json?.status !== 0) throw new Error(errText('GET', path, res, json));
       return json as TResp;
+    } catch (e) {
+      const duration = Date.now() - startTime;
+      auditLogger.log('GET', path, 0, duration, {
+        error: e instanceof Error ? e.message : String(e),
+      });
+      throw e;
     } finally {
       clearTimeout(timeout);
     }
@@ -118,11 +135,28 @@ abstract class BaseRestClient {
     const headers = buildHeaders(this.apiKey, this.secret, 'POST', path, payload);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+    const startTime = Date.now();
+
     try {
       const res = await fetch(this.baseUrl + path, { method: 'POST', headers, body: payload, signal: controller.signal });
       const json = await parseJson(res);
+
+      const duration = Date.now() - startTime;
+      auditLogger.log('POST', path, res.status, duration, {
+        requestBody: body, // Log request for POST operations
+        responseData: json?.status === 0 ? undefined : json, // Log errors only
+        error: !res.ok || json?.status !== 0 ? errText('POST', path, res, json) : undefined,
+      });
+
       if (!res.ok || json?.status !== 0) throw new Error(errText('POST', path, res, json));
       return json as TResp;
+    } catch (e) {
+      const duration = Date.now() - startTime;
+      auditLogger.log('POST', path, 0, duration, {
+        requestBody: body,
+        error: e instanceof Error ? e.message : String(e),
+      });
+      throw e;
     } finally {
       clearTimeout(timeout);
     }

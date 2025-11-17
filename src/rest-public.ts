@@ -1,6 +1,7 @@
 import { getGate } from './rateLimiter.js';
 import type * as T from './types.js';
 import { TtlCache, createCacheKey } from './cache.js';
+import { auditLogger } from './audit.js';
 
 const FOREX_PUBLIC_BASE = 'https://forex-api.coin.z.com/public';
 const CRYPTO_PUBLIC_BASE = 'https://api.coin.z.com/public';
@@ -36,11 +37,26 @@ abstract class BasePublicRestClient {
     if (qs) for (const [k, v] of Object.entries(qs)) if (v != null) url.searchParams.set(k, v);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+    const startTime = Date.now();
+
     try {
       const res = await fetch(url, { signal: controller.signal });
       const json = await parseJson(res);
+
+      const duration = Date.now() - startTime;
+      auditLogger.log('GET', path, res.status, duration, {
+        responseData: !res.ok ? json : undefined, // Log errors only
+        error: !res.ok ? errText('GET', path, res, json) : undefined,
+      });
+
       if (!res.ok) throw new Error(errText('GET', path, res, json));
       return json as TResp;
+    } catch (e) {
+      const duration = Date.now() - startTime;
+      auditLogger.log('GET', path, 0, duration, {
+        error: e instanceof Error ? e.message : String(e),
+      });
+      throw e;
     } finally {
       clearTimeout(timeout);
     }
