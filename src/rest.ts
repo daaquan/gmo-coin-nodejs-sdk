@@ -1,6 +1,7 @@
 import { buildHeaders } from './auth.js';
 import { getGate, postGate } from './rateLimiter.js';
 import { auditLogger } from './audit.js';
+import { metricsCollector } from './metrics.js';
 import type * as T from './types.js';
 
 interface ErrorResponse {
@@ -110,16 +111,27 @@ abstract class BaseRestClient {
       const json = await parseJson(res);
 
       const duration = Date.now() - startTime;
+      const isError = !res.ok || json?.status !== 0;
+      const errorMsg = isError ? errText('GET', path, res, json) : undefined;
+
+      // Record metrics
+      metricsCollector.recordRequest('GET', path, res.status, duration, isError ? errorMsg : undefined);
+
+      // Record audit log
       auditLogger.log('GET', path, res.status, duration, {
         requestBody: undefined,
         responseData: json?.status === 0 ? undefined : json, // Log errors only
-        error: !res.ok || json?.status !== 0 ? errText('GET', path, res, json) : undefined,
+        error: errorMsg,
       });
 
-      if (!res.ok || json?.status !== 0) throw new Error(errText('GET', path, res, json));
+      if (isError) throw new Error(errorMsg);
       return json as TResp;
     } catch (e) {
       const duration = Date.now() - startTime;
+
+      // Record metrics for caught errors
+      metricsCollector.recordRequest('GET', path, 0, duration, e instanceof Error ? e.message : String(e));
+
       auditLogger.log('GET', path, 0, duration, {
         error: e instanceof Error ? e.message : String(e),
       });
@@ -142,16 +154,27 @@ abstract class BaseRestClient {
       const json = await parseJson(res);
 
       const duration = Date.now() - startTime;
+      const isError = !res.ok || json?.status !== 0;
+      const errorMsg = isError ? errText('POST', path, res, json) : undefined;
+
+      // Record metrics
+      metricsCollector.recordRequest('POST', path, res.status, duration, isError ? errorMsg : undefined);
+
+      // Record audit log
       auditLogger.log('POST', path, res.status, duration, {
         requestBody: body, // Log request for POST operations
         responseData: json?.status === 0 ? undefined : json, // Log errors only
-        error: !res.ok || json?.status !== 0 ? errText('POST', path, res, json) : undefined,
+        error: errorMsg,
       });
 
-      if (!res.ok || json?.status !== 0) throw new Error(errText('POST', path, res, json));
+      if (isError) throw new Error(errorMsg);
       return json as TResp;
     } catch (e) {
       const duration = Date.now() - startTime;
+
+      // Record metrics for caught errors
+      metricsCollector.recordRequest('POST', path, 0, duration, e instanceof Error ? e.message : String(e));
+
       auditLogger.log('POST', path, 0, duration, {
         requestBody: body,
         error: e instanceof Error ? e.message : String(e),
