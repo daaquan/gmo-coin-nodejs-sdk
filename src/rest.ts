@@ -15,6 +15,7 @@ interface ErrorResponse {
 const FOREX_BASE = 'https://forex-api.coin.z.com/private';
 const CRYPTO_BASE = 'https://api.coin.z.com/private';
 const V = '/v1';
+const FETCH_TIMEOUT = 30_000; // 30秒
 
 function ensureExecFields(execType: T.ExecType, body: { limitPrice?: string; stopPrice?: string; oco?: { limitPrice: string; stopPrice: string } }) {
   if (execType === 'LIMIT' && !body.limitPrice) throw new Error('LIMIT requires limitPrice');
@@ -36,32 +37,57 @@ function errText(method: string, path: string, res: Response, json: Record<strin
   return `${method} ${path} failed: ${statusLine} code=${code ?? 'n/a'} msg=${msg || JSON.stringify(json)}`;
 }
 
-export class FxPrivateRestClient {
-  constructor(private apiKey: string, private secret: string, private baseUrl = FOREX_BASE) {
+/**
+ * Base class for REST API clients
+ * Handles common HTTP operations with rate limiting and error handling
+ */
+abstract class BaseRestClient {
+  constructor(protected apiKey: string, protected secret: string, protected baseUrl: string) {
     if (!apiKey || !secret) {
-      throw new Error('FxPrivateRestClient: Missing API credentials. Set FX_API_KEY and FX_API_SECRET.');
+      throw new Error(`${this.constructor.name}: Missing API credentials.`);
     }
   }
 
-  private async _get<TResp>(path: string, qs?: Record<string, string | undefined>): Promise<TResp> {
+  protected async _get<TResp>(path: string, qs?: Record<string, string | undefined>): Promise<TResp> {
     await getGate.wait();
     const url = new URL(this.baseUrl + path);
     if (qs) for (const [k, v] of Object.entries(qs)) if (v != null) url.searchParams.set(k, v);
     const headers = buildHeaders(this.apiKey, this.secret, 'GET', path, '');
-    const res = await fetch(url, { headers });
-    const json = await parseJson(res);
-    if (!res.ok || json?.status !== 0) throw new Error(errText('GET', path, res, json));
-    return json as TResp;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+    try {
+      const res = await fetch(url, { headers, signal: controller.signal });
+      const json = await parseJson(res);
+      if (!res.ok || json?.status !== 0) throw new Error(errText('GET', path, res, json));
+      return json as TResp;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
-  private async _post<TResp>(path: string, body: unknown): Promise<TResp> {
+  protected async _post<TResp>(path: string, body: unknown): Promise<TResp> {
     await postGate.wait();
     const payload = JSON.stringify(body ?? {});
     const headers = buildHeaders(this.apiKey, this.secret, 'POST', path, payload);
-    const res = await fetch(this.baseUrl + path, { method: 'POST', headers, body: payload });
-    const json = await parseJson(res);
-    if (!res.ok || json?.status !== 0) throw new Error(errText('POST', path, res, json));
-    return json as TResp;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+    try {
+      const res = await fetch(this.baseUrl + path, { method: 'POST', headers, body: payload, signal: controller.signal });
+      const json = await parseJson(res);
+      if (!res.ok || json?.status !== 0) throw new Error(errText('POST', path, res, json));
+      return json as TResp;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+}
+
+export class FxPrivateRestClient extends BaseRestClient {
+  constructor(apiKey: string, secret: string, baseUrl = FOREX_BASE) {
+    if (!apiKey || !secret) {
+      throw new Error('FxPrivateRestClient: Missing API credentials. Set FX_API_KEY and FX_API_SECRET.');
+    }
+    super(apiKey, secret, baseUrl);
   }
 
   /** ====== ACCOUNT ====== */
@@ -134,41 +160,27 @@ export class FxPrivateRestClient {
  * GMO Coin Crypto API Private REST Client
  * Handles cryptocurrency trading on GMO Coin
  */
-export class CryptoPrivateRestClient {
-  constructor(private apiKey: string, private secret: string, private baseUrl = CRYPTO_BASE) {
+export class CryptoPrivateRestClient extends BaseRestClient {
+  constructor(apiKey: string, secret: string, baseUrl = CRYPTO_BASE) {
     if (!apiKey || !secret) {
       throw new Error('CryptoPrivateRestClient: Missing API credentials. Set CRYPTO_API_KEY and CRYPTO_API_SECRET.');
     }
+    super(apiKey, secret, baseUrl);
   }
 
-  private async _get<TResp>(path: string, qs?: Record<string, string | undefined>): Promise<TResp> {
-    await getGate.wait();
-    const url = new URL(this.baseUrl + path);
-    if (qs) for (const [k, v] of Object.entries(qs)) if (v != null) url.searchParams.set(k, v);
-    const headers = buildHeaders(this.apiKey, this.secret, 'GET', path, '');
-    const res = await fetch(url, { headers });
-    const json = await parseJson(res);
-    if (!res.ok || json?.status !== 0) throw new Error(errText('GET', path, res, json));
-    return json as TResp;
-  }
-
-  private async _post<TResp>(path: string, body: unknown): Promise<TResp> {
-    await postGate.wait();
-    const payload = JSON.stringify(body ?? {});
-    const headers = buildHeaders(this.apiKey, this.secret, 'POST', path, payload);
-    const res = await fetch(this.baseUrl + path, { method: 'POST', headers, body: payload });
-    const json = await parseJson(res);
-    if (!res.ok || json?.status !== 0) throw new Error(errText('POST', path, res, json));
-    return json as TResp;
-  }
-
-  private async _delete<TResp>(path: string): Promise<TResp> {
+  protected async _delete<TResp>(path: string): Promise<TResp> {
     await postGate.wait();
     const headers = buildHeaders(this.apiKey, this.secret, 'DELETE', path, '');
-    const res = await fetch(this.baseUrl + path, { method: 'DELETE', headers });
-    const json = await parseJson(res);
-    if (!res.ok || json?.status !== 0) throw new Error(errText('DELETE', path, res, json));
-    return json as TResp;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+    try {
+      const res = await fetch(this.baseUrl + path, { method: 'DELETE', headers, signal: controller.signal });
+      const json = await parseJson(res);
+      if (!res.ok || json?.status !== 0) throw new Error(errText('DELETE', path, res, json));
+      return json as TResp;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   /** ====== ACCOUNT ====== */
