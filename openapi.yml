@@ -1,0 +1,636 @@
+openapi: 3.0.0
+info:
+  title: GMO Coin SDK API Specification
+  version: 2.0.0
+  description: |
+    Production-ready Node.js/TypeScript SDK for GMO Coin FX and Crypto trading.
+
+    ## Features
+    - Unified REST API for FX and Crypto
+    - Private WebSocket support
+    - Automatic retry with circuit breaker
+    - Request caching (1s TTL for market data)
+    - Audit logging with PII masking
+    - Comprehensive metrics collection
+    - Input validation with Zod
+  contact:
+    name: GMO Coin SDK
+  license:
+    name: MIT
+
+servers:
+  - url: https://forex-api.coin.z.com
+    description: FX API
+  - url: https://api.coin.z.com
+    description: Crypto API
+  - url: http://localhost:3000
+    description: Local Microservice
+
+paths:
+  # FX Endpoints
+  /private/v1/account/assets:
+    get:
+      tags:
+        - FX Private
+      summary: Get account assets
+      operationId: getAssets
+      responses:
+        '200':
+          description: Account assets retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FxAssetResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /private/v1/activeOrders:
+    get:
+      tags:
+        - FX Private
+      summary: Get active orders with unified pagination
+      operationId: getActiveOrders
+      parameters:
+        - name: symbol
+          in: query
+          schema:
+            type: string
+          example: USD_JPY
+        - name: prevId
+          in: query
+          description: Previous order ID for cursor-based pagination
+          schema:
+            type: string
+        - name: count
+          in: query
+          description: Number of records to return
+          schema:
+            type: string
+            default: '100'
+        - name: limit
+          in: query
+          description: Alternative to count (unified pagination)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Active orders retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FxActiveOrdersResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /private/v1/order:
+    post:
+      tags:
+        - FX Private
+      summary: Place a new order
+      operationId: placeOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FxOrderRequest'
+      responses:
+        '200':
+          description: Order placed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FxOrderResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /private/v1/cancelOrders:
+    post:
+      tags:
+        - FX Private
+      summary: Cancel multiple orders
+      operationId: cancelOrders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - rootOrderIds
+              properties:
+                rootOrderIds:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Orders cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /private/v1/openPositions:
+    get:
+      tags:
+        - FX Private
+      summary: Get open positions
+      operationId: getOpenPositions
+      parameters:
+        - name: symbol
+          in: query
+          schema:
+            type: string
+        - name: prevId
+          in: query
+          schema:
+            type: string
+        - name: count
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Open positions retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FxOpenPositionsResponse'
+
+  # Public API Endpoints
+  /public/v1/ticker:
+    get:
+      tags:
+        - Public
+      summary: Get ticker (cached 1s)
+      operationId: getTicker
+      parameters:
+        - name: symbol
+          in: query
+          required: true
+          schema:
+            type: string
+          example: USD_JPY
+      responses:
+        '200':
+          description: Ticker retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TickerResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /public/v1/orderbooks:
+    get:
+      tags:
+        - Public
+      summary: Get order book (cached 1s)
+      operationId: getOrderBook
+      parameters:
+        - name: symbol
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: depth
+          in: query
+          schema:
+            type: string
+            default: '20'
+      responses:
+        '200':
+          description: Order book retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderBookResponse'
+
+  /public/v1/trades:
+    get:
+      tags:
+        - Public
+      summary: Get recent trades
+      operationId: getTrades
+      parameters:
+        - name: symbol
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: count
+          in: query
+          schema:
+            type: string
+            default: '100'
+      responses:
+        '200':
+          description: Trades retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradesResponse'
+
+  /public/v1/klines:
+    get:
+      tags:
+        - Public
+      summary: Get candlestick data
+      operationId: getKlines
+      parameters:
+        - name: symbol
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: interval
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: ['1m', '5m', '15m', '30m', '1h', '4h', '8h', '12h', '1d', '1w', '1M']
+        - name: count
+          in: query
+          schema:
+            type: string
+            default: '100'
+      responses:
+        '200':
+          description: Klines retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KlinesResponse'
+
+  # Microservice Endpoints
+  /health:
+    get:
+      tags:
+        - Service
+      summary: Health check
+      operationId: health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /metrics:
+    get:
+      tags:
+        - Service
+      summary: Prometheus metrics
+      operationId: getMetrics
+      produces:
+        - text/plain
+      responses:
+        '200':
+          description: Prometheus metrics in text format
+
+  /v1/stream:
+    get:
+      tags:
+        - Service
+      summary: Server-Sent Events stream for private updates
+      operationId: getStream
+      parameters:
+        - name: topics
+          in: query
+          description: Comma-separated topics (execution, order, position, positionSummary)
+          schema:
+            type: string
+            default: execution,order
+        - name: symbol
+          in: query
+          description: Filter by symbol
+          schema:
+            type: string
+        - name: X-Tenant-Id
+          in: header
+          description: Multi-tenant ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SSE stream established
+          content:
+            text/event-stream:
+              schema:
+                type: object
+                properties:
+                  event:
+                    type: string
+                  data:
+                    type: object
+
+components:
+  schemas:
+    ApiResponse:
+      type: object
+      required:
+        - status
+        - data
+        - responsetime
+      properties:
+        status:
+          type: integer
+          description: 0 for success, non-zero for error
+        data:
+          type: object
+        responsetime:
+          type: string
+          format: date-time
+
+    FxAssetResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                equity:
+                  type: string
+                  example: '1000000.00'
+                availableAmount:
+                  type: string
+                  example: '500000.00'
+                balance:
+                  type: string
+                margin:
+                  type: string
+                marginRatio:
+                  type: string
+                positionLossGain:
+                  type: string
+
+    FxActiveOrdersResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/FxActiveOrder'
+
+    FxActiveOrder:
+      type: object
+      properties:
+        rootOrderId:
+          type: integer
+        orderId:
+          type: integer
+        symbol:
+          type: string
+        side:
+          type: string
+          enum: [BUY, SELL]
+        executionType:
+          type: string
+          enum: [LIMIT, STOP, OCO]
+        size:
+          type: string
+        price:
+          type: string
+        status:
+          type: string
+          enum: [WAITING, ORDERED, MODIFYING, EXECUTED, EXPIRED]
+        timestamp:
+          type: string
+          format: date-time
+
+    FxOpenPositionsResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  positionId:
+                    type: integer
+                  symbol:
+                    type: string
+                  side:
+                    type: string
+                  size:
+                    type: string
+                  price:
+                    type: string
+
+    FxOrderRequest:
+      type: object
+      required:
+        - symbol
+        - side
+        - size
+        - executionType
+      properties:
+        symbol:
+          type: string
+          description: FX symbol (USD_JPY, EUR_JPY, etc.)
+          example: USD_JPY
+        side:
+          type: string
+          enum: [BUY, SELL]
+        size:
+          type: string
+          description: Trade size
+        executionType:
+          type: string
+          enum: [LIMIT, STOP, OCO]
+        limitPrice:
+          type: string
+          description: Required for LIMIT orders
+        stopPrice:
+          type: string
+          description: Required for STOP orders
+        clientOrderId:
+          type: string
+        expireDate:
+          type: string
+          format: date
+          description: yyyymmdd format
+
+    FxOrderResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/FxActiveOrder'
+
+    TickerResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                symbol:
+                  type: string
+                bid:
+                  type: string
+                ask:
+                  type: string
+                high:
+                  type: string
+                low:
+                  type: string
+                volume:
+                  type: string
+                timestamp:
+                  type: string
+                  format: date-time
+
+    OrderBookResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                symbol:
+                  type: string
+                bids:
+                  type: array
+                  items:
+                    type: array
+                    minItems: 2
+                    maxItems: 2
+                    items:
+                      type: string
+                asks:
+                  type: array
+                  items:
+                    type: array
+                    minItems: 2
+                    maxItems: 2
+                    items:
+                      type: string
+                timestamp:
+                  type: string
+                  format: date-time
+
+    TradesResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  tradeId:
+                    type: string
+                  symbol:
+                    type: string
+                  side:
+                    type: string
+                  price:
+                    type: string
+                  size:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+
+    KlinesResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  openTime:
+                    type: integer
+                  open:
+                    type: string
+                  high:
+                    type: string
+                  low:
+                    type: string
+                  close:
+                    type: string
+                  volume:
+                    type: string
+
+  responses:
+    Unauthorized:
+      description: Unauthorized (invalid credentials)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+
+    BadRequest:
+      description: Bad request (validation error)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+
+    NotFound:
+      description: Resource not found
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+
+tags:
+  - name: FX Private
+    description: FX trading endpoints (authentication required)
+  - name: Crypto Private
+    description: Crypto trading endpoints (authentication required)
+  - name: Public
+    description: Public market data (no authentication required, cached 1s)
+  - name: Service
+    description: Microservice endpoints
+
+x-features:
+  - Unified Pagination
+  - Request Caching (TTL-based)
+  - Audit Logging (PII masking)
+  - Metrics Collection
+  - Automatic Retry with Circuit Breaker
+  - Input Validation

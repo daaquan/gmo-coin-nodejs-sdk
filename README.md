@@ -122,9 +122,91 @@ Private WS Notes
   - Verify API key/secret and that your client IP is allowlisted in GMO Coin settings.
   - You can pass a pre-created token via `WS_TOKEN` env var to the example.
 
+Production Features (Priority-2)
+
+**Unified Pagination**
+- Seamless FX/Crypto API pagination with unified interface
+- FX: cursor-based (prevId + count)
+- Crypto: offset-based (limit/pageSize)
+- Example:
+  ```ts
+  // Works for both FX and Crypto
+  const orders = await client.getActiveOrders({
+    symbol: 'USD_JPY',
+    prevId: '123',
+    count: '50'
+  });
+  ```
+
+**Request Caching**
+- TTL-based in-memory cache (1s default)
+- Automatic LRU eviction
+- Applied to: `getTicker()`, `getOrderBook()`
+- Example:
+  ```ts
+  const fxClient = new FxPublicRestClient(undefined, 5000); // 5s TTL
+  const ticker = await fxClient.getTicker('USD_JPY'); // Cached
+  ```
+
+**Audit Logging**
+- Comprehensive request/response logging
+- Automatic PII masking (API keys, secrets, tokens, passwords)
+- Error tracking with optional stack traces
+- User identification support
+- Example in logs:
+  ```
+  [AUDIT:INFO] GET /v1/assets - 200 (45ms)
+  [AUDIT:ERROR] POST /v1/order - 400 (120ms)
+  ```
+
+**Metrics Collection**
+- Request metrics per endpoint (count, latency, error rate)
+- Order lifecycle tracking (placed, completed, failed, pending)
+- Execution tracking by symbol
+- Error categorization by type
+- Prometheus-compatible export
+- Example:
+  ```ts
+  const metrics = metricsCollector.getMetrics();
+  console.log(metrics.orders.placed); // Total orders placed
+  console.log(metrics.errorRate); // Overall error rate
+
+  const prometheus = exportPrometheus(metrics);
+  // Export to Prometheus/Grafana
+  ```
+
+**Retry & Circuit Breaker**
+- Automatic retry with exponential backoff
+- Circuit breaker pattern for cascading failure prevention
+- Configurable thresholds and timeouts
+- Example:
+  ```ts
+  const breaker = new CircuitBreaker(fn, {
+    failureThreshold: 5,
+    successThreshold: 2,
+    timeout: 60000
+  });
+  ```
+
+**Input Validation**
+- Zod-based schema validation
+- Safe validation mode (returns errors instead of throwing)
+- Supported symbols list validation
+- Example:
+  ```ts
+  const result = validateFxOrderSafe(orderData);
+  if (result.valid) {
+    await client.placeOrder(result.data);
+  }
+  ```
+
 Exports
 - `FxPrivateRestClient` and `CryptoPrivateRestClient` for REST.
 - `FxPrivateWsAuth`, `FxPrivateWsClient`, `CryptoPrivateWsAuth`, and `CryptoPrivateWsClient` for Private WS.
+- `FxPublicRestClient` and `CryptoPublicRestClient` for Public API.
+- `metricsCollector`, `auditLogger` for monitoring and logging.
+- `CircuitBreaker`, `retryWithBackoff`, `retryWithCircuitBreaker` for resilience.
+- `TtlCache` for caching, `validateFxOrderSafe`, `validateCryptoOrderSafe` for validation.
 - Types in `src/types.ts`.
 
 Operational Notes
