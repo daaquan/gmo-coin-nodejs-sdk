@@ -275,3 +275,49 @@ export interface CryptoCancelBulkReq {
 }
 export type CryptoCancelBulkResp = ApiEnvelope<null>;
 
+/** ======= PUBLIC API ======= */
+
+/** Ticker Information */
+export interface Ticker {
+  symbol: string;
+  bid: string;           // Best bid price
+  ask: string;           // Best ask price
+  high: string;          // 24h high
+  low: string;           // 24h low
+  volume: string;        // 24h volume
+  timestamp: string;     // ISO8601
+}
+export type TickerResp = ApiEnvelope<Ticker>;
+export type AllTickersResp = ApiEnvelope<Ticker[]>;
+
+/** Order Book (Depth) */
+export interface OrderBook {
+  symbol: string;
+  bids: Array<[string, string]>;  // [price, size]
+  asks: Array<[string, string]>;  // [price, size]
+  timestamp: string;
+}
+export type OrderBookResp = ApiEnvelope<OrderBook>;
+
+/** Trade (Public Trade) */
+export interface Trade {
+  tradeId: string;
+  symbol: string;
+  side: Side;
+  price: string;
+  size: string;
+  timestamp: string;
+}
+export type TradesResp = ApiEnvelope<Trade[]>;
+
+/** Candlestick (OHLCV) */
+export interface Candle {
+  openTime: number;      // Unix timestamp (ms)
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volume: string;
+}
+export type KlinesResp = ApiEnvelope<Candle[]>;
+

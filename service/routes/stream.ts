@@ -7,6 +7,30 @@ type Topic = 'execution' | 'order' | 'position' | 'positionSummary';
 
 type StreamQuery = TenantQuery & { topics?: string; symbol?: string };
 
+/**
+ * Decode JWT token to extract expiration time
+ * @param token JWT token string
+ * @returns expiration timestamp (ms) or undefined if invalid
+ */
+function decodeJwtExpiry(token: string): number | undefined {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return undefined;
+
+    const payload = parts[1];
+    const decoded = JSON.parse(Buffer.from(payload, 'base64').toString());
+
+    // JWT exp is in seconds, convert to milliseconds
+    if (typeof decoded.exp === 'number') {
+      return decoded.exp * 1000;
+    }
+
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function registerStreamRoutes(app: FastifyInstance) {
   // Simple SSE bridge from Private WS to clients
   app.get<{ Querystring: StreamQuery }>('/v1/stream', async (req, reply) => {
@@ -44,20 +68,36 @@ export function registerStreamRoutes(app: FastifyInstance) {
       console.log('Stream: creating WebSocket client...');
       const ws = new FxPrivateWsClient(token);
 
-      // Arrange auto-extend before expiry if expireAt present
-      // Note: 現在のAPIレスポンスでは expireAt が含まれていないため、この機能は無効
-      const expireAt = undefined; // tokenResp?.data?.expireAt ? Date.parse(tokenResp.data.expireAt) : undefined;
+      // Arrange auto-extend before expiry by decoding JWT token
+      const expireAt = decodeJwtExpiry(token);
       if (expireAt && !Number.isNaN(expireAt)) {
         const earlyMs = 30_000; // extend 30s early
         const delay = Math.max(1_000, expireAt - Date.now() - earlyMs);
-        extendTimer = setTimeout(async () => {
-          try {
-            await auth.extend(token);
-            send('event', { type: 'token_extended' });
-          } catch (e) {
-            send('error', { error: 'extend_failed', detail: String(e) });
-          }
-        }, delay);
+        req.server.log.info({ delay, expireAt }, 'WebSocket token auto-extend scheduled');
+
+        const scheduleExtend = (nextDelay: number) => {
+          extendTimer = setTimeout(async () => {
+            if (closed) return;
+            try {
+              const extendResp = await auth.extend(token);
+              token = extendResp.data; // Update token with new one
+              send('event', { type: 'token_extended', expireAt: decodeJwtExpiry(token) });
+              req.server.log.info({ newExpireAt: decodeJwtExpiry(token) }, 'WebSocket token extended successfully');
+
+              // Reschedule next extension
+              const newExpireAt = decodeJwtExpiry(token);
+              if (newExpireAt && !Number.isNaN(newExpireAt)) {
+                const rescheduleDelay = Math.max(1_000, newExpireAt - Date.now() - earlyMs);
+                scheduleExtend(rescheduleDelay);
+              }
+            } catch (e) {
+              req.server.log.error(e, 'WebSocket token extension failed');
+              send('error', { error: 'extend_failed', detail: e instanceof Error ? e.message : String(e) });
+            }
+          }, nextDelay);
+        };
+
+        scheduleExtend(delay);
       }
 
       await ws.connect();
