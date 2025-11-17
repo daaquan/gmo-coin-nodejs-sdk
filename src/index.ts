@@ -6,4 +6,5 @@ export * from './rest-public.js';
 export * from './ws-private.js';
 export * from './retry.js';
 export * from './validation.js';
+export * from './cache.js';
 

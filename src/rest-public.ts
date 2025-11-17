@@ -1,5 +1,6 @@
 import { getGate } from './rateLimiter.js';
 import type * as T from './types.js';
+import { TtlCache, createCacheKey } from './cache.js';
 
 const FOREX_PUBLIC_BASE = 'https://forex-api.coin.z.com/public';
 const CRYPTO_PUBLIC_BASE = 'https://api.coin.z.com/public';
@@ -20,9 +21,14 @@ function errText(method: string, path: string, res: Response, json: Record<strin
 /**
  * Base class for public REST API clients
  * No authentication required - rate limiting applies
+ * Includes optional caching for market data (TTL=1s by default)
  */
 abstract class BasePublicRestClient {
-  constructor(protected baseUrl: string) {}
+  protected cache: TtlCache;
+
+  constructor(protected baseUrl: string, cacheTtl?: number) {
+    this.cache = new TtlCache({ ttl: cacheTtl ?? 1000, maxSize: 10000 });
+  }
 
   protected async _get<TResp>(path: string, qs?: Record<string, string | undefined>): Promise<TResp> {
     await getGate.wait();
@@ -44,22 +50,31 @@ abstract class BasePublicRestClient {
 /**
  * GMO Coin Forex Public API Client
  * Provides market data without authentication
+ * Includes caching for ticker and orderbook data (TTL=1s by default)
  */
 export class FxPublicRestClient extends BasePublicRestClient {
-  constructor(baseUrl = FOREX_PUBLIC_BASE) {
-    super(baseUrl);
+  constructor(baseUrl = FOREX_PUBLIC_BASE, cacheTtl?: number) {
+    super(baseUrl, cacheTtl);
   }
 
   /**
    * Get latest ticker information
+   * Cached for 1 second by default
    * @param symbol Forex symbol (e.g., USD_JPY, EUR_JPY)
    */
   async getTicker(symbol: string): Promise<T.TickerResp> {
-    return this._get<T.TickerResp>(`${V}/ticker`, { symbol });
+    const cacheKey = createCacheKey('fx:ticker', [symbol]);
+    const cached = this.cache.get<T.TickerResp>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this._get<T.TickerResp>(`${V}/ticker`, { symbol });
+    this.cache.set(cacheKey, result);
+    return result;
   }
 
   /**
    * Get all tickers (multiple symbols)
+   * Not cached - potentially large response
    */
   async getAllTickers(): Promise<T.TickerResp[]> {
     const res = await this._get<T.AllTickersResp>(`${V}/ticker`);
@@ -68,11 +83,18 @@ export class FxPublicRestClient extends BasePublicRestClient {
 
   /**
    * Get order book (depth)
+   * Cached for 1 second by default
    * @param symbol Forex symbol
    * @param depth Order book depth (default: 20)
    */
   async getOrderBook(symbol: string, depth?: string): Promise<T.OrderBookResp> {
-    return this._get<T.OrderBookResp>(`${V}/orderbooks`, { symbol, depth });
+    const cacheKey = createCacheKey('fx:orderbook', [symbol, depth]);
+    const cached = this.cache.get<T.OrderBookResp>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this._get<T.OrderBookResp>(`${V}/orderbooks`, { symbol, depth });
+    this.cache.set(cacheKey, result);
+    return result;
   }
 
   /**
@@ -120,22 +142,31 @@ export class FxPublicRestClient extends BasePublicRestClient {
 /**
  * GMO Coin Crypto Public API Client
  * Provides market data for cryptocurrencies without authentication
+ * Includes caching for ticker and orderbook data (TTL=1s by default)
  */
 export class CryptoPublicRestClient extends BasePublicRestClient {
-  constructor(baseUrl = CRYPTO_PUBLIC_BASE) {
-    super(baseUrl);
+  constructor(baseUrl = CRYPTO_PUBLIC_BASE, cacheTtl?: number) {
+    super(baseUrl, cacheTtl);
   }
 
   /**
    * Get latest ticker information
+   * Cached for 1 second by default
    * @param symbol Cryptocurrency symbol (e.g., BTC, ETH)
    */
   async getTicker(symbol: string): Promise<T.TickerResp> {
-    return this._get<T.TickerResp>(`${V}/ticker`, { symbol });
+    const cacheKey = createCacheKey('crypto:ticker', [symbol]);
+    const cached = this.cache.get<T.TickerResp>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this._get<T.TickerResp>(`${V}/ticker`, { symbol });
+    this.cache.set(cacheKey, result);
+    return result;
   }
 
   /**
    * Get all tickers (multiple symbols)
+   * Not cached - potentially large response
    */
   async getAllTickers(): Promise<T.TickerResp[]> {
     const res = await this._get<T.AllTickersResp>(`${V}/ticker`);
@@ -144,11 +175,18 @@ export class CryptoPublicRestClient extends BasePublicRestClient {
 
   /**
    * Get order book (depth)
+   * Cached for 1 second by default
    * @param symbol Cryptocurrency symbol
    * @param depth Order book depth (default: 20)
    */
   async getOrderBook(symbol: string, depth?: string): Promise<T.OrderBookResp> {
-    return this._get<T.OrderBookResp>(`${V}/orderbooks`, { symbol, depth });
+    const cacheKey = createCacheKey('crypto:orderbook', [symbol, depth]);
+    const cached = this.cache.get<T.OrderBookResp>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this._get<T.OrderBookResp>(`${V}/orderbooks`, { symbol, depth });
+    this.cache.set(cacheKey, result);
+    return result;
   }
 
   /**
