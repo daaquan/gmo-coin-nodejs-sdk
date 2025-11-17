@@ -38,6 +38,53 @@ function errText(method: string, path: string, res: Response, json: Record<strin
 }
 
 /**
+ * Normalize pagination options for FX API (cursor-based: prevId + count)
+ * Converts unified PaginationOptions to FX-specific parameters
+ */
+function normalizeFxPagination(opts?: T.PaginationOptions): Record<string, string | undefined> {
+  if (!opts) return {};
+
+  const result: Record<string, string | undefined> = {};
+
+  // Cursor-based pagination (prevId + count)
+  if (opts.prevId) result.prevId = opts.prevId;
+  if (opts.count) result.count = opts.count;
+
+  // Note: offset/limit are not supported in FX API
+  // If user provides offset/limit, log warning but don't use them
+  if (opts.offset || opts.limit) {
+    console.warn('FX API does not support offset/limit pagination; use prevId + count instead');
+  }
+
+  return result;
+}
+
+/**
+ * Normalize pagination options for Crypto API (pageSize or limit)
+ * Converts unified PaginationOptions to Crypto-specific parameters
+ * Supports both legacy pageSize and newer limit parameters
+ */
+function normalizeCryptoPagination(opts?: T.PaginationOptions): Record<string, string | undefined> {
+  if (!opts) return {};
+
+  const result: Record<string, string | undefined> = {};
+
+  // Use limit if provided, otherwise fallback to pageSize (backward compat)
+  if (opts.limit) {
+    result.pageSize = opts.limit;
+  } else if (opts.pageSize) {
+    result.pageSize = opts.pageSize;
+  }
+
+  // Note: cursor-based pagination (prevId) not supported in Crypto API
+  if (opts.prevId) {
+    console.warn('Crypto API does not support cursor-based pagination; use pageSize/limit instead');
+  }
+
+  return result;
+}
+
+/**
  * Base class for REST API clients
  * Handles common HTTP operations with rate limiting and error handling
  */
@@ -96,17 +143,34 @@ export class FxPrivateRestClient extends BaseRestClient {
   }
 
   /** ====== QUERIES ====== */
-  getActiveOrders(q?: { symbol?: string; prevId?: string; count?: string }) {
-    return this._get<T.FxActiveOrdersResp>(`${V}/activeOrders`, q);
+  /**
+   * Get active (pending) orders
+   * Supports unified pagination: use prevId + count for cursor-based pagination
+   */
+  getActiveOrders(q?: { symbol?: string } & T.PaginationOptions) {
+    const { symbol } = q || {};
+    const pagination = normalizeFxPagination(q);
+    const params = { symbol, ...pagination };
+    return this._get<T.FxActiveOrdersResp>(`${V}/activeOrders`, params);
   }
+
   getExecutions(q: { executionId: string }) {
     return this._get<T.FxExecutionsResp>(`${V}/executions`, q);
   }
+
   getLatestExecutions(q: { symbol: string; count?: string }) {
     return this._get<T.FxLatestExecsResp>(`${V}/latestExecutions`, q);
   }
-  getOpenPositions(q?: { symbol?: string; prevId?: string; count?: string }) {
-    return this._get<T.FxOpenPositionsResp>(`${V}/openPositions`, q);
+
+  /**
+   * Get open positions
+   * Supports unified pagination: use prevId + count for cursor-based pagination
+   */
+  getOpenPositions(q?: { symbol?: string } & T.PaginationOptions) {
+    const { symbol } = q || {};
+    const pagination = normalizeFxPagination(q);
+    const params = { symbol, ...pagination };
+    return this._get<T.FxOpenPositionsResp>(`${V}/openPositions`, params);
   }
   getPositionSummary(q?: { symbol?: string }) {
     return this._get<T.FxPositionSummaryResp>(`${V}/positionSummary`, q);
@@ -189,20 +253,48 @@ export class CryptoPrivateRestClient extends BaseRestClient {
   }
 
   /** ====== QUERIES ====== */
-  getOpenPositions(q?: { symbol?: string; pageSize?: string }) {
-    return this._get<T.CryptoOpenPositionsResp>('/v1/openPositions', q);
+  /**
+   * Get open positions
+   * Supports unified pagination: use limit/pageSize for pagination
+   */
+  getOpenPositions(q?: { symbol?: string } & T.PaginationOptions) {
+    const { symbol } = q || {};
+    const pagination = normalizeCryptoPagination(q);
+    const params = { symbol, ...pagination };
+    return this._get<T.CryptoOpenPositionsResp>('/v1/openPositions', params);
   }
 
-  getActiveOrders(q?: { symbol?: string; pageSize?: string }) {
-    return this._get<T.CryptoActiveOrdersResp>('/v1/activeOrders', q);
+  /**
+   * Get active (pending) orders
+   * Supports unified pagination: use limit/pageSize for pagination
+   */
+  getActiveOrders(q?: { symbol?: string } & T.PaginationOptions) {
+    const { symbol } = q || {};
+    const pagination = normalizeCryptoPagination(q);
+    const params = { symbol, ...pagination };
+    return this._get<T.CryptoActiveOrdersResp>('/v1/activeOrders', params);
   }
 
-  getExecutions(q?: { symbol?: string; orderId?: string; pageSize?: string }) {
-    return this._get<T.CryptoExecutionsResp>('/v1/executions', q);
+  /**
+   * Get executions (completed orders)
+   * Supports unified pagination: use limit/pageSize for pagination
+   */
+  getExecutions(q?: { symbol?: string; orderId?: string } & T.PaginationOptions) {
+    const { symbol, orderId } = q || {};
+    const pagination = normalizeCryptoPagination(q);
+    const params = { symbol, orderId, ...pagination };
+    return this._get<T.CryptoExecutionsResp>('/v1/executions', params);
   }
 
-  getLatestExecutions(q?: { symbol?: string; pageSize?: string }) {
-    return this._get<T.CryptoLatestExecutionsResp>('/v1/latestExecutions', q);
+  /**
+   * Get latest executions
+   * Supports unified pagination: use limit/pageSize for pagination
+   */
+  getLatestExecutions(q?: { symbol?: string } & T.PaginationOptions) {
+    const { symbol } = q || {};
+    const pagination = normalizeCryptoPagination(q);
+    const params = { symbol, ...pagination };
+    return this._get<T.CryptoLatestExecutionsResp>('/v1/latestExecutions', params);
   }
 
   getPositionSummary(q?: { symbol?: string }) {

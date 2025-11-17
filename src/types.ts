@@ -321,3 +321,36 @@ export interface Candle {
 }
 export type KlinesResp = ApiEnvelope<Candle[]>;
 
+/** ======= PAGINATION ======= */
+
+/**
+ * Unified pagination options supporting both cursor-based (prevId) and offset-based (offset/limit) approaches
+ * - For cursor-based: use `prevId` and `count`
+ * - For offset-based: use `offset` and `limit`
+ * - `pageSize` is legacy Crypto API parameter (maps to limit)
+ */
+export interface PaginationOptions {
+  /** Cursor-based pagination: previous ID (FX API) */
+  prevId?: string;
+
+  /** Offset-based pagination: number of records to skip */
+  offset?: string;
+
+  /** Number of records to fetch (replaces pageSize) */
+  limit?: string;
+
+  /** Legacy Crypto API parameter (deprecated, use limit) */
+  pageSize?: string;
+
+  /** Number of records to fetch for cursor-based pagination (FX API) */
+  count?: string;
+}
+
+/**
+ * Helper to normalize pagination options for API calls
+ * Converts unified options to API-specific parameters
+ */
+export interface NormalizedPaginationParams {
+  [key: string]: string | undefined;
+}
+
