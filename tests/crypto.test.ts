@@ -710,6 +710,211 @@ describe('CryptoPrivateRestClient', () => {
     });
   });
 
+  describe('placeOcoOrder', () => {
+    it('should place OCO order successfully', async () => {
+      const mockResponse = {
+        status: 0,
+        data: {
+          rootOrderId: '12350',
+        },
+        responsetime: '2025-01-01T00:00:00.000Z',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(mockResponse),
+      });
+
+      const result = await client.placeOcoOrder({
+        symbol: 'BTC',
+        side: 'BUY',
+        size: '0.5',
+        limitPrice: '46000.00',
+        stopPrice: '42000.00',
+      });
+
+      expect(result.data.rootOrderId).toBe('12350');
+    });
+
+    it('should throw error when OCO missing limitPrice', () => {
+      expect(() =>
+        client.placeOcoOrder({
+          symbol: 'BTC',
+          side: 'BUY',
+          size: '0.5',
+          limitPrice: '',
+          stopPrice: '42000.00',
+        })
+      ).toThrow('OCO orders require limitPrice field');
+    });
+
+    it('should throw error when OCO missing stopPrice', () => {
+      expect(() =>
+        client.placeOcoOrder({
+          symbol: 'BTC',
+          side: 'BUY',
+          size: '0.5',
+          limitPrice: '46000.00',
+          stopPrice: '',
+        })
+      ).toThrow('OCO orders require stopPrice field');
+    });
+  });
+
+  describe('placeIfdOrder', () => {
+    it('should place IFD order successfully', async () => {
+      const mockResponse = {
+        status: 0,
+        data: {
+          rootOrderId: '12351',
+        },
+        responsetime: '2025-01-01T00:00:00.000Z',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(mockResponse),
+      });
+
+      const result = await client.placeIfdOrder({
+        symbol: 'BTC',
+        firstSide: 'BUY',
+        firstExecutionType: 'LIMIT',
+        firstSize: '0.5',
+        firstPrice: '45000.00',
+        secondExecutionType: 'LIMIT',
+        secondSize: '0.5',
+        secondPrice: '46000.00',
+      });
+
+      expect(result.data.rootOrderId).toBe('12351');
+    });
+
+    it('should throw error when first leg LIMIT missing price', () => {
+      expect(() =>
+        client.placeIfdOrder({
+          symbol: 'BTC',
+          firstSide: 'BUY',
+          firstExecutionType: 'LIMIT',
+          firstSize: '0.5',
+          secondExecutionType: 'LIMIT',
+          secondSize: '0.5',
+          secondPrice: '46000.00',
+        })
+      ).toThrow('First leg LIMIT requires firstPrice field');
+    });
+
+    it('should throw error when second leg STOP missing stopPrice', () => {
+      expect(() =>
+        client.placeIfdOrder({
+          symbol: 'BTC',
+          firstSide: 'BUY',
+          firstExecutionType: 'LIMIT',
+          firstSize: '0.5',
+          firstPrice: '45000.00',
+          secondExecutionType: 'STOP',
+          secondSize: '0.5',
+        })
+      ).toThrow('Second leg STOP requires secondStopPrice field');
+    });
+  });
+
+  describe('placeIfdocoOrder', () => {
+    it('should place IFDOCO order successfully', async () => {
+      const mockResponse = {
+        status: 0,
+        data: {
+          rootOrderId: '12352',
+        },
+        responsetime: '2025-01-01T00:00:00.000Z',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(mockResponse),
+      });
+
+      const result = await client.placeIfdocoOrder({
+        symbol: 'BTC',
+        firstSide: 'BUY',
+        firstExecutionType: 'LIMIT',
+        firstSize: '0.5',
+        firstPrice: '45000.00',
+        secondLimitPrice: '46000.00',
+        secondStopPrice: '42000.00',
+        secondSize: '0.5',
+      });
+
+      expect(result.data.rootOrderId).toBe('12352');
+    });
+
+    it('should throw error when IFDOCO missing secondLimitPrice', () => {
+      expect(() =>
+        client.placeIfdocoOrder({
+          symbol: 'BTC',
+          firstSide: 'BUY',
+          firstExecutionType: 'LIMIT',
+          firstSize: '0.5',
+          firstPrice: '45000.00',
+          secondLimitPrice: '',
+          secondStopPrice: '42000.00',
+          secondSize: '0.5',
+        })
+      ).toThrow('IFDOCO requires secondLimitPrice field');
+    });
+
+    it('should throw error when IFDOCO missing secondStopPrice', () => {
+      expect(() =>
+        client.placeIfdocoOrder({
+          symbol: 'BTC',
+          firstSide: 'BUY',
+          firstExecutionType: 'LIMIT',
+          firstSize: '0.5',
+          firstPrice: '45000.00',
+          secondLimitPrice: '46000.00',
+          secondStopPrice: '',
+          secondSize: '0.5',
+        })
+      ).toThrow('IFDOCO requires secondStopPrice field');
+    });
+  });
+
+  describe('changeOcoOrder', () => {
+    it('should change OCO order successfully', async () => {
+      const mockResponse = {
+        status: 0,
+        data: [
+          {
+            rootOrderId: '12350',
+            orderId: '67891',
+            symbol: 'BTC',
+            side: 'BUY' as const,
+            executionType: 'LIMIT' as const,
+            size: '0.5',
+            price: '46500.00',
+            status: 'WAITING' as const,
+            timestamp: '2025-01-01T00:00:00.000Z',
+          },
+        ],
+        responsetime: '2025-01-01T00:00:00.000Z',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(mockResponse),
+      });
+
+      const result = await client.changeOcoOrder({
+        rootOrderId: '12350',
+        limitPrice: '46500.00',
+        stopPrice: '41500.00',
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].rootOrderId).toBe('12350');
+    });
+  });
+
   describe('error handling', () => {
     it('should handle network errors', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network timeout'));

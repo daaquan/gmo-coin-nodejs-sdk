@@ -198,6 +198,55 @@ export interface CryptoOrderReq {
 }
 export type CryptoOrderResp = ApiEnvelope<{ rootOrderId: string }>;
 
+/** Crypto OCO Order types */
+export interface CryptoOcoOrderReq {
+  symbol: string;
+  side: Side; // 'BUY' | 'SELL'
+  size: string;
+  limitPrice: string; // Limit order price
+  stopPrice: string; // Stop order price (losscut)
+  clientOrderId?: string;
+  timeInForce?: 'FAK' | 'GTC';
+}
+export type CryptoOcoOrderResp = ApiEnvelope<{ rootOrderId: string }>;
+
+/** Crypto IFD (If-Done) Order types */
+export interface CryptoIfdOrderReq {
+  symbol: string;
+  clientOrderId?: string;
+  // First leg
+  firstSide: Side;
+  firstExecutionType: 'MARKET' | 'LIMIT' | 'STOP';
+  firstSize: string;
+  firstPrice?: string; // required for LIMIT
+  firstStopPrice?: string; // required for STOP
+  // Second leg
+  secondExecutionType: 'MARKET' | 'LIMIT' | 'STOP';
+  secondSize: string;
+  secondPrice?: string; // required for LIMIT
+  secondStopPrice?: string; // required for STOP
+  timeInForce?: 'FAK' | 'GTC';
+}
+export type CryptoIfdOrderResp = ApiEnvelope<{ rootOrderId: string }>;
+
+/** Crypto IFDOCO (If-Done with OCO) Order types */
+export interface CryptoIfdocoOrderReq {
+  symbol: string;
+  clientOrderId?: string;
+  // First leg (entry order)
+  firstSide: Side;
+  firstExecutionType: 'MARKET' | 'LIMIT' | 'STOP';
+  firstSize: string;
+  firstPrice?: string; // required for LIMIT
+  firstStopPrice?: string; // required for STOP
+  // Second leg (OCO: exit with limit and stop)
+  secondLimitPrice: string; // Limit order for profit-taking
+  secondStopPrice: string; // Stop order for risk management (losscut)
+  secondSize: string;
+  timeInForce?: 'FAK' | 'GTC';
+}
+export type CryptoIfdocoOrderResp = ApiEnvelope<{ rootOrderId: string }>;
+
 /** Crypto Open Positions */
 export interface CryptoOpenPosition {
   symbol: string;
@@ -260,6 +309,34 @@ export interface CryptoChangeOrderReq {
   losscutPrice?: string;
 }
 export type CryptoChangeOrderResp = ApiEnvelope<CryptoActiveOrder>;
+
+/** Crypto Change OCO Order */
+export interface CryptoChangeOcoOrderReq {
+  rootOrderId: string;
+  limitPrice?: string;
+  stopPrice?: string;
+}
+export type CryptoChangeOcoOrderResp = ApiEnvelope<CryptoActiveOrder[]>;
+
+/** Crypto Change IFD Order */
+export interface CryptoChangeIfdOrderReq {
+  rootOrderId: string;
+  firstPrice?: string;
+  firstStopPrice?: string;
+  secondPrice?: string;
+  secondStopPrice?: string;
+}
+export type CryptoChangeIfdOrderResp = ApiEnvelope<CryptoActiveOrder[]>;
+
+/** Crypto Change IFDOCO Order */
+export interface CryptoChangeIfdocoOrderReq {
+  rootOrderId: string;
+  firstPrice?: string;
+  firstStopPrice?: string;
+  secondLimitPrice?: string;
+  secondStopPrice?: string;
+}
+export type CryptoChangeIfdocoOrderResp = ApiEnvelope<CryptoActiveOrder[]>;
 
 /** Crypto Cancel Multiple Orders */
 export interface CryptoCancelOrdersReq { 
