@@ -369,6 +369,68 @@ export class CryptoPrivateRestClient extends BaseRestClient {
     return this._post<T.CryptoOrderResp>('/v1/orders', body);
   }
 
+  /**
+   * Place OCO (One-Cancels-Other) order
+   * Two legs: limit order and stop order, only one will execute
+   */
+  placeOcoOrder(body: T.CryptoOcoOrderReq) {
+    if (!body.limitPrice) {
+      throw new Error('OCO orders require limitPrice field');
+    }
+    if (!body.stopPrice) {
+      throw new Error('OCO orders require stopPrice field');
+    }
+    return this._post<T.CryptoOcoOrderResp>('/v1/orders', body);
+  }
+
+  /**
+   * Place IFD (If-Done) order
+   * First leg must execute before second leg
+   */
+  placeIfdOrder(body: T.CryptoIfdOrderReq) {
+    // Validate first leg
+    if (body.firstExecutionType === 'LIMIT' && !body.firstPrice) {
+      throw new Error('First leg LIMIT requires firstPrice field');
+    }
+    if (body.firstExecutionType === 'STOP' && !body.firstStopPrice) {
+      throw new Error('First leg STOP requires firstStopPrice field');
+    }
+
+    // Validate second leg
+    if (body.secondExecutionType === 'LIMIT' && !body.secondPrice) {
+      throw new Error('Second leg LIMIT requires secondPrice field');
+    }
+    if (body.secondExecutionType === 'STOP' && !body.secondStopPrice) {
+      throw new Error('Second leg STOP requires secondStopPrice field');
+    }
+
+    return this._post<T.CryptoIfdOrderResp>('/v1/orders', body);
+  }
+
+  /**
+   * Place IFDOCO (If-Done with OCO) order
+   * First leg entry order, second leg OCO (limit + stop)
+   */
+  placeIfdocoOrder(body: T.CryptoIfdocoOrderReq) {
+    // Validate first leg
+    if (body.firstExecutionType === 'LIMIT' && !body.firstPrice) {
+      throw new Error('First leg LIMIT requires firstPrice field');
+    }
+    if (body.firstExecutionType === 'STOP' && !body.firstStopPrice) {
+      throw new Error('First leg STOP requires firstStopPrice field');
+    }
+
+    // Validate second leg (OCO requires both limit and stop)
+    if (!body.secondLimitPrice) {
+      throw new Error('IFDOCO requires secondLimitPrice field');
+    }
+    if (!body.secondStopPrice) {
+      throw new Error('IFDOCO requires secondStopPrice field');
+    }
+
+    return this._post<T.CryptoIfdocoOrderResp>('/v1/orders', body);
+  }
+
   cancelOrder(orderId: string) {
     return this._delete<T.CryptoCancelOrderResp>(`/v1/orders/${orderId}`);
   }
@@ -376,6 +438,27 @@ export class CryptoPrivateRestClient extends BaseRestClient {
 
   changeOrder(body: T.CryptoChangeOrderReq) {
     return this._post<T.CryptoChangeOrderResp>('/v1/changeOrder', body);
+  }
+
+  /**
+   * Change OCO order prices
+   */
+  changeOcoOrder(body: T.CryptoChangeOcoOrderReq) {
+    return this._post<T.CryptoChangeOcoOrderResp>('/v1/changeOrder', body);
+  }
+
+  /**
+   * Change IFD order prices
+   */
+  changeIfdOrder(body: T.CryptoChangeIfdOrderReq) {
+    return this._post<T.CryptoChangeIfdOrderResp>('/v1/changeOrder', body);
+  }
+
+  /**
+   * Change IFDOCO order prices
+   */
+  changeIfdocoOrder(body: T.CryptoChangeIfdocoOrderReq) {
+    return this._post<T.CryptoChangeIfdocoOrderResp>('/v1/changeOrder', body);
   }
 
   cancelOrders(body: T.CryptoCancelOrdersReq) {
