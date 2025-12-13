@@ -607,6 +607,191 @@ if (preCreatedToken) {
 - You can pass a pre-created token via `WS_TOKEN` environment variable to examples
 - Token expiry: Extend tokens periodically with `auth.extend(token)`
 
+## Public WebSocket APIs
+
+The SDK provides public WebSocket clients for real-time ticker data streaming without requiring authentication. These are ideal for monitoring market prices without needing API credentials.
+
+### Forex (FX) Public WebSocket
+
+#### Basic Usage
+
+```typescript
+import { FxPublicWsClient } from 'gmo-coin-sdk';
+
+const ws = new FxPublicWsClient();
+
+await ws.connect();
+console.log('Connected to FX public WebSocket');
+
+ws.onMessage((msg) => {
+  console.log('Ticker update:', msg);
+});
+
+ws.onError((error) => {
+  console.error('WebSocket error:', error);
+});
+
+ws.onClose(() => {
+  console.log('Connection closed');
+});
+
+await ws.subscribe('USD_JPY');
+console.log('Subscribed to USD_JPY ticker');
+```
+
+#### Multiple Symbol Subscription
+
+```typescript
+const symbols = ['USD_JPY', 'EUR_JPY', 'GBP_JPY'];
+
+for (const symbol of symbols) {
+  await ws.subscribe(symbol);
+  console.log(`Subscribed to ${symbol}`);
+}
+```
+
+#### Unsubscribe from Ticker
+
+```typescript
+await ws.unsubscribe('USD_JPY');
+console.log('Unsubscribed from USD_JPY');
+```
+
+#### Cleanup
+
+```typescript
+await ws.close();
+console.log('Connection closed and resources cleaned up');
+```
+
+### Cryptocurrency Public WebSocket
+
+#### Basic Usage
+
+```typescript
+import { CryptoPublicWsClient } from 'gmo-coin-sdk';
+
+const ws = new CryptoPublicWsClient();
+
+await ws.connect();
+console.log('Connected to Crypto public WebSocket');
+
+ws.onMessage((msg) => {
+  console.log('Ticker update:', msg);
+});
+
+await ws.subscribe('BTC');
+console.log('Subscribed to BTC ticker');
+```
+
+#### Complete Example with Error Handling
+
+```typescript
+import { CryptoPublicWsClient } from 'gmo-coin-sdk';
+
+async function streamCryptoTickers() {
+  const ws = new CryptoPublicWsClient();
+
+  try {
+    await ws.connect();
+    console.log('Connected!');
+
+    ws.onMessage((msg) => {
+      const data = msg as any;
+      if (data.channel === 'ticker') {
+        console.log(`${data.symbol}: Ask=${data.ask}, Bid=${data.bid}, Last=${data.last}`);
+      }
+    });
+
+    ws.onError((error) => {
+      console.error('WebSocket error:', error.message);
+    });
+
+    ws.onClose(() => {
+      console.log('WebSocket connection closed');
+    });
+
+    const symbols = ['BTC', 'ETH', 'XRP'];
+    for (const symbol of symbols) {
+      await ws.subscribe(symbol);
+      console.log(`Subscribed to ${symbol}`);
+    }
+
+    console.log('Streaming ticker data... Press Ctrl+C to exit');
+
+    process.on('SIGINT', async () => {
+      console.log('\nClosing connection...');
+      await ws.close();
+      process.exit(0);
+    });
+
+  } catch (error) {
+    console.error('Failed to connect:', error);
+    await ws.close();
+  }
+}
+
+streamCryptoTickers();
+```
+
+### Public WebSocket Message Format
+
+#### FX Ticker Response
+
+```json
+{
+  "symbol": "USD_JPY",
+  "ask": "130.00",
+  "bid": "129.98",
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "status": "OPEN"
+}
+```
+
+#### Crypto Ticker Response
+
+```json
+{
+  "channel": "ticker",
+  "symbol": "BTC",
+  "ask": "50000.00",
+  "bid": "49990.00",
+  "last": "49995.00",
+  "high": "51000.00",
+  "low": "49000.00",
+  "volume": "1234.5678",
+  "timestamp": "2024-01-01T00:00:00.000Z"
+}
+```
+
+### Public WebSocket Notes
+
+- **No authentication required**: Public WebSocket APIs don't need API keys or tokens
+- **Rate limiting**: Subscribe/unsubscribe operations are limited to 1 per second
+- **Keepalive**: SDK automatically sends ping every 55 seconds to maintain connection
+- **Connection lifecycle**: Once closed, create a new client instance to reconnect
+- **Ticker channel only**: Currently supports ticker data streaming only
+- **Symbol-specific**: Must specify a symbol when subscribing (no all-symbols mode)
+
+### Supported Symbols
+
+**FX Symbols:**
+- USD_JPY, EUR_JPY, GBP_JPY, AUD_JPY, NZD_JPY, CAD_JPY, CHF_JPY
+- EUR_USD, GBP_USD, AUD_USD, and more
+
+**Crypto Symbols:**
+- BTC, ETH, XRP, BCH, LTC, XLM, XTZ, DOT, ATOM, ADA, LINK, DOGE, SOL, and more
+
+### Comparison: Public vs Private WebSocket
+
+| Feature | Public WebSocket | Private WebSocket |
+|---------|------------------|-------------------|
+| Authentication | Not required | Requires API key/secret + token |
+| Channels | Ticker only | Execution, Order, Position, PositionSummary |
+| Use Case | Market data monitoring | Trading notifications |
+| Rate Limit | 1 subscribe/unsubscribe per second | 1 message per second |
+| Setup Complexity | Low (direct connect) | Medium (token creation required) |
+
 ## Error Handling
 
 The SDK throws errors on non-`status:0` responses with HTTP status and API code/message when available. Implement proper error handling for both FX and Crypto operations.

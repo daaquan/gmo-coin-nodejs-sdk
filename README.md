@@ -85,6 +85,8 @@ if (order.data[0]) {
 | `FxPrivateWsAuth` | Forex Auth | WebSocket token creation and revocation |
 | `CryptoPrivateWsClient` | Crypto Private | Real-time crypto updates |
 | `CryptoPrivateWsAuth` | Crypto Auth | WebSocket token management |
+| `FxPublicWsClient` | Forex Public | Real-time ticker data (no auth required) |
+| `CryptoPublicWsClient` | Crypto Public | Real-time ticker data (no auth required) |
 
 ## Documentation
 
@@ -131,6 +133,8 @@ cancelOrders(ids)
 ```
 
 ### WebSocket
+
+**Private WebSocket (requires authentication):**
 ```typescript
 const auth = new FxPrivateWsAuth(apiKey, secret);
 const token = (await auth.create()).data.token;
@@ -138,6 +142,14 @@ const ws = new FxPrivateWsClient(token);
 await ws.connect();
 ws.onMessage(msg => console.log(msg));
 await ws.subscribe('execution');
+```
+
+**Public WebSocket (no authentication):**
+```typescript
+const ws = new FxPublicWsClient();
+await ws.connect();
+ws.onMessage(msg => console.log(msg));
+await ws.subscribe('USD_JPY');
 ```
 
 ## Development

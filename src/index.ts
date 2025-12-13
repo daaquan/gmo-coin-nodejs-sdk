@@ -4,6 +4,7 @@ export * from './rateLimiter.js';
 export * from './rest.js';
 export * from './rest-public.js';
 export * from './ws-private.js';
+export * from './ws-public.js';
 export * from './retry.js';
 export * from './validation.js';
 export * from './cache.js';
