@@ -2,7 +2,7 @@
  * Tests for service/lib/idempotency.ts
  * Idempotency cache with Redis fallback to in-memory
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createMockEntry, createExpiredEntry } from './helpers/mockTypes.js';
 
 // Mock redis module

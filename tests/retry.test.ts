@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { retryWithBackoff, CircuitBreaker, retryWithCircuitBreaker } from '../src/retry.js';
 
 describe('Retry Mechanism', () => {

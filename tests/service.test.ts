@@ -123,7 +123,7 @@ describe('Service Routes', () => {
       logger: { level: 'silent' },
     });
 
-    app.addHook('onRequest', async (req, reply) => {
+    app.addHook('onRequest', async (_req, _reply) => {
       // Mock auth - always pass
       return;
     });

@@ -44,7 +44,6 @@ describe('FixedGate', () => {
 
     it('should resolve immediately on first call', async () => {
       const gate = new FixedGate(1);
-      const start = Date.now();
 
       const waitPromise = gate.wait();
       await vi.runAllTimersAsync();
@@ -85,7 +84,6 @@ describe('FixedGate', () => {
       vi.advanceTimersByTime(1500);
 
       // Second call should resolve immediately (no additional wait)
-      const start = Date.now();
       await gate.wait();
 
       // Should update last timestamp

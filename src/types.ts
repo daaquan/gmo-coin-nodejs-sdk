@@ -1,434 +1,166 @@
-export type Side = 'BUY' | 'SELL';
-export type ExecType = 'LIMIT' | 'STOP' | 'OCO';
-export type SettleType = 'OPEN' | 'CLOSE';
+import { z } from 'zod';
 
-export interface ApiEnvelope<T> {
-  status: number; // 0 = success
+/**
+ * Result pattern for type-safe error handling
+ * Recommended by mastering-typescript skill
+ */
+export type Result<T, E = Error | z.ZodError> =
+  | { success: true; data: T }
+  | { success: false; error: E };
+
+// ====== COMMON SCHEMAS & TYPES ======
+
+export const SideSchema = z.enum(['BUY', 'SELL']);
+export type Side = z.infer<typeof SideSchema>;
+
+export const ExecTypeSchema = z.enum(['MARKET', 'LIMIT', 'STOP', 'OCO']);
+export type ExecType = z.infer<typeof ExecTypeSchema>;
+
+export const SettleTypeSchema = z.enum(['OPEN', 'CLOSE']);
+export type SettleType = z.infer<typeof SettleTypeSchema>;
+
+export const PriceSchema = z.string().regex(/^\d+(\.\d+)?$/, 'Invalid price format');
+export const SizeSchema = z.string().regex(/^\d+(\.\d+)?$/, 'Invalid size format');
+
+/**
+ * API Response Envelope
+ */
+export const ApiEnvelopeSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
+  z.object({
+    status: z.number(), // 0 = success
+    data: dataSchema,
+    responsetime: z.string(), // ISO8601
+  });
+
+export type ApiEnvelope<T> = {
+  status: number;
   data: T;
-  responsetime: string; // ISO8601
-}
+  responsetime: string;
+};
 
-/** /v1/account/assets */
-export interface FxAsset {
-  equity: string;
-  availableAmount: string;
-  balance: string;
-  estimatedTradeFee: string;
-  margin: string;
-  marginRatio: string;
-  positionLossGain: string;
-  totalSwap: string;
-  transferableAmount: string;
-}
-export type FxAssetResp = ApiEnvelope<FxAsset>;
+// ====== SYMBOLS ======
 
-/** Orders common */
-export interface FxActiveOrder {
-  rootOrderId: number;
-  clientOrderId?: string;
-  orderId: number;
-  symbol: string; // e.g., "USD_JPY"
-  side: Side;
-  orderType: 'NORMAL' | 'IFD' | 'OCO' | 'IFDOCO';
-  executionType: ExecType;
-  settleType: SettleType;
-  size: string;
-  price?: string;
-  status: 'WAITING' | 'ORDERED' | 'MODIFYING' | 'EXECUTED' | 'EXPIRED';
-  cancelType?: 'PRICE_BOUND' | 'OCO';
-  expiry?: string; // yyyymmdd
-  timestamp: string;
-}
+export const FxSymbols = [
+  'USD_JPY', 'EUR_JPY', 'GBP_JPY', 'AUD_JPY', 'NZD_JPY',
+  'CAD_JPY', 'CHF_JPY', 'ZAR_JPY', 'TRY_JPY', 'CNY_JPY',
+  'HKD_JPY', 'SGD_JPY', 'INR_JPY', 'MXN_JPY', 'BRL_JPY',
+  'EUR_USD', 'GBP_USD', 'AUD_USD',
+] as const;
+export const FxSymbolSchema = z.enum(FxSymbols);
+export type FxSymbol = z.infer<typeof FxSymbolSchema>;
 
-export interface FxExecution {
-  executionId: string;
-  orderId: string;
-  symbol: string;
-  side: Side;
-  price: string;
-  size: string;
-  timestamp: string;
-}
+export const CryptoSymbols = [
+  'BTC', 'ETH', 'BCH', 'LTC', 'XRP', 'XEM', 'XLM', 'BAT', 'OMG',
+  'XTZ', 'QTUM', 'ENJ', 'DOT', 'ATOM', 'ADA', 'MKR', 'DAI', 'LINK',
+  'SOL', 'MATIC', 'AAVE', 'UNI', 'AVAX', 'DOGE', 'SHIB',
+] as const;
+export const CryptoSymbolSchema = z.enum(CryptoSymbols);
+export type CryptoSymbol = z.infer<typeof CryptoSymbolSchema>;
 
-export interface FxPositionSummary {
-  symbol: string;
-  side: Side;
-  size: string;
-  price: string;
-}
+// ====== FX DATA SCHEMAS ======
 
-export type FxActiveOrdersResp = ApiEnvelope<FxActiveOrder[]>;
-export type FxExecutionsResp = ApiEnvelope<FxExecution[]>;
-export type FxLatestExecsResp = ApiEnvelope<FxExecution[]>;
+export const FxAssetSchema = z.object({
+  equity: z.string(),
+  availableAmount: z.string(),
+  balance: z.string(),
+  estimatedTradeFee: z.string(),
+  margin: z.string(),
+  marginRatio: z.string(),
+  positionLossGain: z.string(),
+  totalSwap: z.string(),
+  transferableAmount: z.string(),
+});
+export type FxAsset = z.infer<typeof FxAssetSchema>;
 
-/** Positions */
-export interface FxOpenPosition {
-  positionId: number;
-  symbol: string;
-  side: Side;
-  size: string;
-  price: string;
-}
-export type FxOpenPositionsResp = ApiEnvelope<FxOpenPosition[]>;
-export type FxPositionSummaryResp = ApiEnvelope<FxPositionSummary[]>;
+export const FxActiveOrderSchema = z.object({
+  rootOrderId: z.number(),
+  clientOrderId: z.string().optional(),
+  orderId: z.number(),
+  symbol: z.string(),
+  side: SideSchema,
+  orderType: z.enum(['NORMAL', 'IFD', 'OCO', 'IFDOCO']),
+  executionType: ExecTypeSchema,
+  settleType: SettleTypeSchema,
+  size: z.string(),
+  price: z.string().optional(),
+  status: z.enum(['WAITING', 'ORDERED', 'MODIFYING', 'EXECUTED', 'EXPIRED']),
+  cancelType: z.enum(['PRICE_BOUND', 'OCO']).optional(),
+  expiry: z.string().optional(),
+  timestamp: z.string(),
+});
+export type FxActiveOrder = z.infer<typeof FxActiveOrderSchema>;
 
-/** Place orders */
-export interface FxOrderReq {
-  symbol: string;
-  side: Side;
-  size: string;
-  clientOrderId?: string;
-  executionType: ExecType;
-  limitPrice?: string; // required for LIMIT
-  stopPrice?: string; // required for STOP
-  oco?: { limitPrice: string; stopPrice: string }; // required for OCO
-  expireDate?: string; // optional yyyymmdd
-  settleType?: SettleType; // default OPEN
-}
-export type FxOrderResp = ApiEnvelope<FxActiveOrder[]>;
+export const FxExecutionSchema = z.object({
+  executionId: z.string(),
+  orderId: z.string(),
+  symbol: z.string(),
+  side: SideSchema,
+  price: z.string(),
+  size: z.string(),
+  timestamp: z.string(),
+});
+export type FxExecution = z.infer<typeof FxExecutionSchema>;
 
-export interface FxSpeedOrderReq {
-  symbol: string;
-  side: Side;
-  clientOrderId?: string;
-  size: string;
-  upperBound?: string; // BUY protective max
-  lowerBound?: string; // SELL protective min
-  isHedgeable?: boolean;
-}
-export type FxSpeedOrderResp = ApiEnvelope<FxActiveOrder[]>;
+export const FxPositionSummarySchema = z.object({
+  symbol: z.string(),
+  side: SideSchema,
+  size: z.string(),
+  price: z.string(),
+});
+export type FxPositionSummary = z.infer<typeof FxPositionSummarySchema>;
 
-export interface FxIfdOrderReq {
-  symbol: string;
-  clientOrderId?: string;
-  firstSide: Side;
-  firstExecutionType: ExecType;
-  firstSize: string;
-  firstPrice?: string;
-  firstStopPrice?: string;
-  secondExecutionType: ExecType;
-  secondSize: string;
-  secondPrice?: string;
-  secondStopPrice?: string;
-}
-export type FxIfdOrderResp = ApiEnvelope<FxActiveOrder[]>;
+// ====== CRYPTO DATA SCHEMAS ======
 
-export interface FxIfdocoOrderReq {
-  symbol: string;
-  clientOrderId?: string;
-  firstSide: Side;
-  firstExecutionType: ExecType;
-  firstSize: string;
-  firstPrice?: string;
-  firstStopPrice?: string;
-  // OCO leg (second): limit/stop pair
-  secondExecutionType: 'LIMIT' | 'STOP'; // overall OCO requires two prices below
-  secondLimitPrice?: string;
-  secondStopPrice?: string;
-  secondSize: string;
-}
-export type FxIfdocoOrderResp = ApiEnvelope<FxActiveOrder[]>;
+export const CryptoAssetSchema = z.object({
+  symbol: z.string(),
+  amount: z.string(),
+  available: z.string(),
+});
+export type CryptoAsset = z.infer<typeof CryptoAssetSchema>;
 
-export interface FxChangeOrderReq {
-  orderId?: number;
-  clientOrderId?: string;
-  price?: string;
-}
-export type FxChangeOrderResp = ApiEnvelope<FxActiveOrder[]>;
+export const CryptoOpenPositionSchema = z.object({
+  symbol: z.string(),
+  sumSize: z.string(),
+  avgPrice: z.string(),
+  sumPrice: z.string(),
+  side: SideSchema.optional(),
+});
+export type CryptoOpenPosition = z.infer<typeof CryptoOpenPositionSchema>;
 
-export interface FxChangeIfdReq {
-  rootOrderId?: number;
-  clientOrderId?: string;
-  firstPrice?: string;
-  secondPrice?: string;
-}
-export interface FxChangeIfdocoReq {
-  rootOrderId?: number;
-  clientOrderId?: string;
-  firstPrice?: string;
-  secondLimitPrice?: string;
-  secondStopPrice?: string;
-}
-export type FxChangeIfdResp = ApiEnvelope<FxActiveOrder[]>;
-export type FxChangeIfdocoResp = ApiEnvelope<FxActiveOrder[]>;
+export const CryptoActiveOrderSchema = z.object({
+  rootOrderId: z.string(),
+  orderId: z.string(),
+  symbol: z.string(),
+  side: SideSchema,
+  executionType: ExecTypeSchema,
+  size: z.string(),
+  price: z.string().optional(),
+  losscutPrice: z.string().optional(),
+  status: z.enum(['WAITING', 'ORDERED', 'EXECUTED', 'EXPIRED']),
+  timestamp: z.string(),
+});
+export type CryptoActiveOrder = z.infer<typeof CryptoActiveOrderSchema>;
 
-export interface FxCancelOrdersReq {
-  rootOrderIds: number[];
-}
-export type FxCancelOrdersResp = ApiEnvelope<FxActiveOrder[]>;
+// ====== PUBLIC DATA SCHEMAS ======
 
-export interface FxCancelBulkReq {
-  symbols?: string[];
-  side?: Side;
-  settleType?: SettleType;
-}
-export type FxCancelBulkResp = ApiEnvelope<null>;
+export const TickerSchema = z.object({
+  symbol: z.string(),
+  bid: z.string(),
+  ask: z.string(),
+  high: z.string(),
+  low: z.string(),
+  volume: z.string(),
+  timestamp: z.string(),
+});
+export type Ticker = z.infer<typeof TickerSchema>;
 
-export interface FxCloseOrderReq {
-  symbol: string;
-  side: Side;
-  clientOrderId?: string;
-  executionType: ExecType;
-  limitPrice?: string;
-  stopPrice?: string;
-  settlePosition: { positionId: number; size: string }[];
-}
-export type FxCloseOrderResp = ApiEnvelope<FxActiveOrder[]>;
+// ====== PAGINATION ======
 
-/** WS auth lifecycle */
-export type FxCreateWsTokenResp = ApiEnvelope<{ token: string; expireAt: string }>;
-
-/** ========== CRYPTO API TYPES ========== */
-
-/** Crypto specific types */
-export interface CryptoAsset {
-  symbol: string;
-  amount: string;
-  available: string;
-}
-export type CryptoAssetsResp = ApiEnvelope<CryptoAsset[]>;
-
-/** Crypto Order types */
-export interface CryptoOrderReq {
-  symbol: string;
-  side: Side; // 'BUY' | 'SELL'
-  executionType: 'MARKET' | 'LIMIT' | 'STOP';
-  size: string;
-  price?: string; // required for LIMIT
-  losscutPrice?: string; // for STOP/OCO
-  timeInForce?: 'FAK' | 'GTC'; // default FAK for market, GTC for limit
-}
-export type CryptoOrderResp = ApiEnvelope<{ rootOrderId: string }>;
-
-/** Crypto OCO Order types */
-export interface CryptoOcoOrderReq {
-  symbol: string;
-  side: Side; // 'BUY' | 'SELL'
-  size: string;
-  limitPrice: string; // Limit order price
-  stopPrice: string; // Stop order price (losscut)
-  clientOrderId?: string;
-  timeInForce?: 'FAK' | 'GTC';
-}
-export type CryptoOcoOrderResp = ApiEnvelope<{ rootOrderId: string }>;
-
-/** Crypto IFD (If-Done) Order types */
-export interface CryptoIfdOrderReq {
-  symbol: string;
-  clientOrderId?: string;
-  // First leg
-  firstSide: Side;
-  firstExecutionType: 'MARKET' | 'LIMIT' | 'STOP';
-  firstSize: string;
-  firstPrice?: string; // required for LIMIT
-  firstStopPrice?: string; // required for STOP
-  // Second leg
-  secondExecutionType: 'MARKET' | 'LIMIT' | 'STOP';
-  secondSize: string;
-  secondPrice?: string; // required for LIMIT
-  secondStopPrice?: string; // required for STOP
-  timeInForce?: 'FAK' | 'GTC';
-}
-export type CryptoIfdOrderResp = ApiEnvelope<{ rootOrderId: string }>;
-
-/** Crypto IFDOCO (If-Done with OCO) Order types */
-export interface CryptoIfdocoOrderReq {
-  symbol: string;
-  clientOrderId?: string;
-  // First leg (entry order)
-  firstSide: Side;
-  firstExecutionType: 'MARKET' | 'LIMIT' | 'STOP';
-  firstSize: string;
-  firstPrice?: string; // required for LIMIT
-  firstStopPrice?: string; // required for STOP
-  // Second leg (OCO: exit with limit and stop)
-  secondLimitPrice: string; // Limit order for profit-taking
-  secondStopPrice: string; // Stop order for risk management (losscut)
-  secondSize: string;
-  timeInForce?: 'FAK' | 'GTC';
-}
-export type CryptoIfdocoOrderResp = ApiEnvelope<{ rootOrderId: string }>;
-
-/** Crypto Open Positions */
-export interface CryptoOpenPosition {
-  symbol: string;
-  sumSize: string;
-  avgPrice: string;
-  sumPrice: string;
-  side?: Side;
-}
-export type CryptoOpenPositionsResp = ApiEnvelope<CryptoOpenPosition[]>;
-
-/** Crypto Active Orders */
-export interface CryptoActiveOrder {
-  rootOrderId: string;
-  orderId: string;
-  symbol: string;
-  side: Side;
-  executionType: 'MARKET' | 'LIMIT' | 'STOP';
-  size: string;
-  price?: string;
-  losscutPrice?: string;
-  status: 'WAITING' | 'ORDERED' | 'EXECUTED' | 'EXPIRED';
-  timestamp: string;
-}
-export type CryptoActiveOrdersResp = ApiEnvelope<CryptoActiveOrder[]>;
-
-/** Crypto Executions */
-export interface CryptoExecution {
-  executionId: string;
-  orderId: string;
-  symbol: string;
-  side: Side;
-  executedPrice: string;
-  executedSize: string;
-  timestamp: string;
-}
-export type CryptoExecutionsResp = ApiEnvelope<CryptoExecution[]>;
-
-/** Crypto Cancel Order */
-export interface CryptoCancelOrderReq {
-  orderId: string;
-}
-export type CryptoCancelOrderResp = ApiEnvelope<{ orderId: string }>;
-
-/** Crypto Latest Executions */
-export type CryptoLatestExecutionsResp = ApiEnvelope<CryptoExecution[]>;
-
-/** Crypto Position Summary */
-export interface CryptoPositionSummary {
-  symbol: string;
-  side: Side;
-  size: string;
-  price: string;
-}
-export type CryptoPositionSummaryResp = ApiEnvelope<CryptoPositionSummary[]>;
-
-/** Crypto Change Order */
-export interface CryptoChangeOrderReq {
-  orderId: string;
-  price?: string;
-  losscutPrice?: string;
-}
-export type CryptoChangeOrderResp = ApiEnvelope<CryptoActiveOrder>;
-
-/** Crypto Change OCO Order */
-export interface CryptoChangeOcoOrderReq {
-  rootOrderId: string;
-  limitPrice?: string;
-  stopPrice?: string;
-}
-export type CryptoChangeOcoOrderResp = ApiEnvelope<CryptoActiveOrder[]>;
-
-/** Crypto Change IFD Order */
-export interface CryptoChangeIfdOrderReq {
-  rootOrderId: string;
-  firstPrice?: string;
-  firstStopPrice?: string;
-  secondPrice?: string;
-  secondStopPrice?: string;
-}
-export type CryptoChangeIfdOrderResp = ApiEnvelope<CryptoActiveOrder[]>;
-
-/** Crypto Change IFDOCO Order */
-export interface CryptoChangeIfdocoOrderReq {
-  rootOrderId: string;
-  firstPrice?: string;
-  firstStopPrice?: string;
-  secondLimitPrice?: string;
-  secondStopPrice?: string;
-}
-export type CryptoChangeIfdocoOrderResp = ApiEnvelope<CryptoActiveOrder[]>;
-
-/** Crypto Cancel Multiple Orders */
-export interface CryptoCancelOrdersReq {
-  rootOrderIds: string[];
-}
-export type CryptoCancelOrdersResp = ApiEnvelope<CryptoActiveOrder[]>;
-
-/** Crypto Cancel Bulk Orders */
-export interface CryptoCancelBulkReq {
-  symbols?: string[];
-  side?: Side;
-  settleType?: 'OPEN' | 'CLOSE';
-}
-export type CryptoCancelBulkResp = ApiEnvelope<null>;
-
-/** ======= PUBLIC API ======= */
-
-/** Ticker Information */
-export interface Ticker {
-  symbol: string;
-  bid: string; // Best bid price
-  ask: string; // Best ask price
-  high: string; // 24h high
-  low: string; // 24h low
-  volume: string; // 24h volume
-  timestamp: string; // ISO8601
-}
-export type TickerResp = ApiEnvelope<Ticker>;
-export type AllTickersResp = ApiEnvelope<Ticker[]>;
-
-/** Order Book (Depth) */
-export interface OrderBook {
-  symbol: string;
-  bids: Array<[string, string]>; // [price, size]
-  asks: Array<[string, string]>; // [price, size]
-  timestamp: string;
-}
-export type OrderBookResp = ApiEnvelope<OrderBook>;
-
-/** Trade (Public Trade) */
-export interface Trade {
-  tradeId: string;
-  symbol: string;
-  side: Side;
-  price: string;
-  size: string;
-  timestamp: string;
-}
-export type TradesResp = ApiEnvelope<Trade[]>;
-
-/** Candlestick (OHLCV) */
-export interface Candle {
-  openTime: number; // Unix timestamp (ms)
-  open: string;
-  high: string;
-  low: string;
-  close: string;
-  volume: string;
-}
-export type KlinesResp = ApiEnvelope<Candle[]>;
-
-/** ======= PAGINATION ======= */
-
-/**
- * Unified pagination options supporting both cursor-based (prevId) and offset-based (offset/limit) approaches
- * - For cursor-based: use `prevId` and `count`
- * - For offset-based: use `offset` and `limit`
- * - `pageSize` is legacy Crypto API parameter (maps to limit)
- */
-export interface PaginationOptions {
-  /** Cursor-based pagination: previous ID (FX API) */
-  prevId?: string;
-
-  /** Offset-based pagination: number of records to skip */
-  offset?: string;
-
-  /** Number of records to fetch (replaces pageSize) */
-  limit?: string;
-
-  /** Legacy Crypto API parameter (deprecated, use limit) */
-  pageSize?: string;
-
-  /** Number of records to fetch for cursor-based pagination (FX API) */
-  count?: string;
-}
-
-/**
- * Helper to normalize pagination options for API calls
- * Converts unified options to API-specific parameters
- */
-export interface NormalizedPaginationParams {
-  [key: string]: string | undefined;
-}
+export const PaginationOptionsSchema = z.object({
+  prevId: z.string().optional(),
+  offset: z.string().optional(),
+  limit: z.string().optional(),
+  pageSize: z.string().optional(), // Deprecated
+  count: z.string().optional(),
+});
+export type PaginationOptions = z.infer<typeof PaginationOptionsSchema>;

@@ -1,101 +1,43 @@
-import type { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
-import { mapGmoError } from './errors.js';
+import { FastifyReply, FastifyError, FastifyRequest } from 'fastify';
+import { Result } from '../../src/types.js';
+import { z } from 'zod';
 
-export interface ErrorResponse {
-  status: 'error';
-  code: string;
-  message: string;
-  timestamp: string;
-  requestId?: string;
-  details?: Record<string, unknown>;
-}
-
-export function createErrorResponse(
-  code: string,
-  message: string,
-  details?: Record<string, unknown>,
-  requestId?: string,
-): ErrorResponse {
-  return {
-    status: 'error',
-    code,
-    message,
-    timestamp: new Date().toISOString(),
-    requestId,
-    ...(details && { details }),
-  };
-}
-
-export async function globalErrorHandler(
-  error: FastifyError | Error,
-  request: FastifyRequest,
-  reply: FastifyReply,
-) {
-  const requestId = request.id;
-
-  // Handle Fastify errors
-  if ('statusCode' in error) {
-    const statusCode = (error as FastifyError).statusCode || 500;
-    const code =
-      statusCode === 401
-        ? 'unauthorized'
-        : statusCode === 403
-          ? 'forbidden'
-          : statusCode === 404
-            ? 'not_found'
-            : 'validation_error';
-    request.server.log.warn({ requestId, statusCode, message: error.message }, 'HTTP error');
-    return reply
-      .status(statusCode)
-      .send(
-        createErrorResponse(
-          code,
-          error.message,
-          { validation: (error as any)?.validation },
-          requestId,
-        ),
-      );
+/**
+ * Handles the Result from SDK and sends appropriate Fastify response
+ */
+export function handleResult<T>(reply: FastifyReply, result: Result<T>) {
+  if (result.success) {
+    return reply.send({
+      status: 0,
+      data: result.data,
+      responsetime: new Date().toISOString(),
+    });
   }
 
-  // Handle SDK/API errors
-  const gmoMessage = mapGmoError(error);
-  const statusCode = gmoMessage.includes('Rate limit')
-    ? 429
-    : gmoMessage.includes('unauthorized')
-      ? 401
-      : gmoMessage.includes('Timestamp')
-        ? 400
-        : 500;
+  const error = result.error;
 
-  request.server.log.error({ requestId, error: error.message, gmoMessage }, 'Request failed');
+  if (error instanceof z.ZodError) {
+    return reply.status(400).send({
+      status: 1,
+      error: 'Validation Error',
+      details: error.errors,
+    });
+  }
 
-  return reply
-    .status(statusCode)
-    .send(
-      createErrorResponse(
-        statusCode === 429
-          ? 'rate_limit_exceeded'
-          : statusCode === 401
-            ? 'unauthorized'
-            : 'internal_error',
-        gmoMessage || 'Internal server error',
-        { originalError: error instanceof Error ? error.message : String(error) },
-        requestId,
-      ),
-    );
+  return reply.status(500).send({
+    status: 1,
+    error: error.message || 'Internal Server Error',
+  });
 }
 
 /**
- * Wraps route handlers with error handling
+ * Global error handler for Fastify
  */
-export function withErrorHandler(
-  handler: (request: FastifyRequest, reply: FastifyReply) => Promise<any>,
-): (request: FastifyRequest, reply: FastifyReply) => Promise<void> {
-  return async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      return await handler(request, reply);
-    } catch (error) {
-      await globalErrorHandler(error as Error | FastifyError, request, reply);
-    }
-  };
+export function globalErrorHandler(error: FastifyError, _req: FastifyRequest, reply: FastifyReply) {
+  const statusCode = error.statusCode || 500;
+  reply.status(statusCode).send({
+    status: 1,
+    error: error.name,
+    message: error.message,
+  });
 }

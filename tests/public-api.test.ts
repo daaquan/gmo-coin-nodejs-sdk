@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { FxPublicRestClient, CryptoPublicRestClient } from '../src/rest-public.js';
 import * as validation from '../src/validation.js';
 

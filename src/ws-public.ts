@@ -21,8 +21,8 @@ const PING_INTERVAL = 55_000; // 55 seconds (server pings ~60s)
  * Provides real-time ticker data without authentication
  */
 export class FxPublicWsClient {
-  private ws?: WebSocket;
-  private pingTimer?: ReturnType<typeof setInterval>;
+  private ws: WebSocket | null = null;
+  private pingTimer: ReturnType<typeof setInterval> | null = null;
   private closed = false;
 
   constructor(private wsBase: string = FX_WS_BASE) {}
@@ -175,14 +175,14 @@ export class FxPublicWsClient {
 
     if (this.pingTimer) {
       clearInterval(this.pingTimer);
-      this.pingTimer = undefined;
+      this.pingTimer = null;
     }
 
     if (this.ws) {
       if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
         this.ws.close();
       }
-      this.ws = undefined;
+      this.ws = null;
     }
   }
 }

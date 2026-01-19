@@ -2,7 +2,6 @@
  * Type-safe mock helpers for GMO Coin SDK tests
  */
 import { vi } from 'vitest';
-import type { FastifyRequest, FastifyReply } from 'fastify';
 import type * as T from '../../src/types.js';
 
 // ====== API Envelope Mocks ======

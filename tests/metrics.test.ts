@@ -3,7 +3,6 @@ import {
   MetricsCollector,
   createMetricsCollector,
   exportPrometheus,
-  type AggregatedMetrics,
 } from '../src/metrics.js';
 
 describe('Metrics Collector', () => {

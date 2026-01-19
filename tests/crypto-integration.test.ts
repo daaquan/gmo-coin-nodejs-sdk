@@ -282,7 +282,7 @@ describe('CryptoPrivateRestClient Integration Tests', () => {
           json: vi.fn().mockResolvedValue(cancelResponse),
         });
 
-      const order = await client.placeOrder({
+      await client.placeOrder({
         symbol: 'SOL',
         side: 'BUY' as const,
         executionType: 'LIMIT' as const,
