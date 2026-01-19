@@ -13,7 +13,8 @@
     "examples:rest": "npm run build && node dist/examples/private-rest.js",
     "examples:ws": "npm run build && node dist/examples/private-ws.js",
     "start:service": "npm run build && node dist/service/server.js",
-    "lint": "eslint 'src/**/*.ts' 'service/**/*.ts' 'tests/**/*.ts' 'examples/**/*.ts'"
+    "lint": "eslint 'src/**/*.ts' 'service/**/*.ts' 'tests/**/*.ts' 'examples/**/*.ts'",
+    "format": "prettier --write 'src/**/*.ts' 'service/**/*.ts' 'tests/**/*.ts' 'examples/**/*.ts' '*.js' '*.json' '*.md' '*.yml'"
   },
   "engines": {
     "node": ">=18"
@@ -36,6 +37,8 @@
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
     "eslint": "^9.36.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.0",
     "typescript": "^5.6.2",
     "vitest": "^3.2.4"
   }

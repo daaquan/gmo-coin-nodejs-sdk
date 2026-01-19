@@ -46,7 +46,7 @@ describe('serviceAuthHook', () => {
         'Bearer valid-token',
         expect.objectContaining({
           jwksUrl: 'https://auth.example.com/.well-known/jwks.json',
-        })
+        }),
       );
       expect(reply.status).not.toHaveBeenCalled();
     });
@@ -82,7 +82,7 @@ describe('serviceAuthHook', () => {
         'Bearer token',
         expect.objectContaining({
           jwksUrl: 'https://custom-auth.example.com/jwks',
-        })
+        }),
       );
     });
 
@@ -102,7 +102,7 @@ describe('serviceAuthHook', () => {
         'Bearer token',
         expect.objectContaining({
           issuer: 'https://issuer.example.com',
-        })
+        }),
       );
     });
 
@@ -122,7 +122,7 @@ describe('serviceAuthHook', () => {
         'Bearer token',
         expect.objectContaining({
           audience: 'my-api',
-        })
+        }),
       );
     });
 
@@ -142,7 +142,7 @@ describe('serviceAuthHook', () => {
         'Bearer token',
         expect.objectContaining({
           issuer: undefined,
-        })
+        }),
       );
     });
 

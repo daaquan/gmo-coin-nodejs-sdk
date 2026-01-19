@@ -20,4 +20,3 @@ export async function ensureRedisConnected() {
     await r.connect();
   }
 }
-

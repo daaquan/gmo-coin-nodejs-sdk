@@ -10,11 +10,20 @@ const FETCH_TIMEOUT = 30_000; // 30秒
 
 async function parseJson(res: Response) {
   let json: Record<string, unknown> | undefined;
-  try { json = await res.json(); } catch { json = undefined; }
+  try {
+    json = await res.json();
+  } catch {
+    json = undefined;
+  }
   return json;
 }
 
-function errText(method: string, path: string, res: Response, json: Record<string, unknown> | undefined) {
+function errText(
+  method: string,
+  path: string,
+  res: Response,
+  json: Record<string, unknown> | undefined,
+) {
   const statusLine = `${res.status} ${res.statusText}`;
   return `${method} ${path} failed: ${statusLine} data=${JSON.stringify(json)}`;
 }
@@ -27,11 +36,17 @@ function errText(method: string, path: string, res: Response, json: Record<strin
 abstract class BasePublicRestClient {
   protected cache: TtlCache;
 
-  constructor(protected baseUrl: string, cacheTtl?: number) {
+  constructor(
+    protected baseUrl: string,
+    cacheTtl?: number,
+  ) {
     this.cache = new TtlCache({ ttl: cacheTtl ?? 1000, maxSize: 10000 });
   }
 
-  protected async _get<TResp>(path: string, qs?: Record<string, string | undefined>): Promise<TResp> {
+  protected async _get<TResp>(
+    path: string,
+    qs?: Record<string, string | undefined>,
+  ): Promise<TResp> {
     await getGate.wait();
     const url = new URL(this.baseUrl + path);
     if (qs) for (const [k, v] of Object.entries(qs)) if (v != null) url.searchParams.set(k, v);
@@ -132,7 +147,7 @@ export class FxPublicRestClient extends BasePublicRestClient {
   async getKlines(
     symbol: string,
     interval: string,
-    options?: { count?: string; before?: string }
+    options?: { count?: string; before?: string },
   ): Promise<T.KlinesResp> {
     return this._get<T.KlinesResp>(`${V}/klines`, {
       symbol,
@@ -147,10 +162,24 @@ export class FxPublicRestClient extends BasePublicRestClient {
    */
   getSupportedSymbols(): string[] {
     return [
-      'USD_JPY', 'EUR_JPY', 'GBP_JPY', 'AUD_JPY', 'NZD_JPY',
-      'CAD_JPY', 'CHF_JPY', 'ZAR_JPY', 'TRY_JPY', 'CNY_JPY',
-      'HKD_JPY', 'SGD_JPY', 'INR_JPY', 'MXN_JPY', 'BRL_JPY',
-      'EUR_USD', 'GBP_USD', 'AUD_USD',
+      'USD_JPY',
+      'EUR_JPY',
+      'GBP_JPY',
+      'AUD_JPY',
+      'NZD_JPY',
+      'CAD_JPY',
+      'CHF_JPY',
+      'ZAR_JPY',
+      'TRY_JPY',
+      'CNY_JPY',
+      'HKD_JPY',
+      'SGD_JPY',
+      'INR_JPY',
+      'MXN_JPY',
+      'BRL_JPY',
+      'EUR_USD',
+      'GBP_USD',
+      'AUD_USD',
     ];
   }
 }
@@ -224,7 +253,7 @@ export class CryptoPublicRestClient extends BasePublicRestClient {
   async getKlines(
     symbol: string,
     interval: string,
-    options?: { count?: string; before?: string }
+    options?: { count?: string; before?: string },
   ): Promise<T.KlinesResp> {
     return this._get<T.KlinesResp>(`${V}/klines`, {
       symbol,
@@ -239,9 +268,31 @@ export class CryptoPublicRestClient extends BasePublicRestClient {
    */
   getSupportedSymbols(): string[] {
     return [
-      'BTC', 'ETH', 'BCH', 'LTC', 'XRP', 'XEM', 'XLM', 'BAT', 'OMG',
-      'XTZ', 'QTUM', 'ENJ', 'DOT', 'ATOM', 'ADA', 'MKR', 'DAI', 'LINK',
-      'SOL', 'MATIC', 'AAVE', 'UNI', 'AVAX', 'DOGE', 'SHIB',
+      'BTC',
+      'ETH',
+      'BCH',
+      'LTC',
+      'XRP',
+      'XEM',
+      'XLM',
+      'BAT',
+      'OMG',
+      'XTZ',
+      'QTUM',
+      'ENJ',
+      'DOT',
+      'ATOM',
+      'ADA',
+      'MKR',
+      'DAI',
+      'LINK',
+      'SOL',
+      'MATIC',
+      'AAVE',
+      'UNI',
+      'AVAX',
+      'DOGE',
+      'SHIB',
     ];
   }
 }

@@ -74,7 +74,11 @@ app
   .listen({ port, host })
   .then((addr) => {
     app.log.info({ msg: 'service started', addr, nodeVersion: process.version });
-    app.log.info({ msg: 'environment', logLevel: process.env.LOG_LEVEL || 'info', authMode: process.env.SERVICE_AUTH_MODE || 'disabled' });
+    app.log.info({
+      msg: 'environment',
+      logLevel: process.env.LOG_LEVEL || 'info',
+      authMode: process.env.SERVICE_AUTH_MODE || 'disabled',
+    });
   })
   .catch((err) => {
     app.log.error(err, 'failed to start');

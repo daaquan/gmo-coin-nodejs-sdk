@@ -68,7 +68,7 @@ export class MetricsCollector {
     path: string,
     statusCode: number,
     duration: number,
-    error?: Error | string
+    error?: Error | string,
   ): void {
     const key = `${method.toUpperCase()}:${path}`;
     let metrics = this.endpoints.get(key);
@@ -233,29 +233,29 @@ export function exportPrometheus(metrics: AggregatedMetrics): string {
   // Help text
   lines.push('# HELP api_requests_total Total number of API requests');
   lines.push('# TYPE api_requests_total counter');
-  metrics.endpoints.forEach(ep => {
+  metrics.endpoints.forEach((ep) => {
     lines.push(`api_requests_total{method="${ep.method}",path="${ep.path}"} ${ep.requestCount}`);
   });
 
   lines.push('');
   lines.push('# HELP api_errors_total Total number of API errors');
   lines.push('# TYPE api_errors_total counter');
-  metrics.endpoints.forEach(ep => {
+  metrics.endpoints.forEach((ep) => {
     lines.push(`api_errors_total{method="${ep.method}",path="${ep.path}"} ${ep.errorCount}`);
   });
 
   lines.push('');
   lines.push('# HELP api_request_latency_ms API request latency in milliseconds');
   lines.push('# TYPE api_request_latency_ms gauge');
-  metrics.endpoints.forEach(ep => {
+  metrics.endpoints.forEach((ep) => {
     lines.push(
-      `api_request_latency_ms{method="${ep.method}",path="${ep.path}",quantile="avg"} ${ep.latency.avg}`
+      `api_request_latency_ms{method="${ep.method}",path="${ep.path}",quantile="avg"} ${ep.latency.avg}`,
     );
     lines.push(
-      `api_request_latency_ms{method="${ep.method}",path="${ep.path}",quantile="min"} ${ep.latency.min}`
+      `api_request_latency_ms{method="${ep.method}",path="${ep.path}",quantile="min"} ${ep.latency.min}`,
     );
     lines.push(
-      `api_request_latency_ms{method="${ep.method}",path="${ep.path}",quantile="max"} ${ep.latency.max}`
+      `api_request_latency_ms{method="${ep.method}",path="${ep.path}",quantile="max"} ${ep.latency.max}`,
     );
   });
 

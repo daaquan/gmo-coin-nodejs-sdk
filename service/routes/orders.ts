@@ -29,14 +29,16 @@ const SpeedOrderBody = z.object({
   isHedgeable: z.boolean().optional(),
 });
 
-const CancelOrdersBody = z.object({
-  symbol: z.string(),
-  rootOrderIds: z.array(z.number().int()).optional(), // for FX
-  orderId: z.string().optional(), // for Crypto
-}).refine(
-  (data) => data.rootOrderIds?.length || data.orderId,
-  'Either rootOrderIds (for FX) or orderId (for Crypto) is required'
-);
+const CancelOrdersBody = z
+  .object({
+    symbol: z.string(),
+    rootOrderIds: z.array(z.number().int()).optional(), // for FX
+    orderId: z.string().optional(), // for Crypto
+  })
+  .refine(
+    (data) => data.rootOrderIds?.length || data.orderId,
+    'Either rootOrderIds (for FX) or orderId (for Crypto) is required',
+  );
 
 const OrderBody = z.object({
   symbol: z.string(),
@@ -91,10 +93,14 @@ export function registerOrderRoutes(app: FastifyInstance) {
       const fx = new FxPrivateRestClient(apiKey, secret);
       const query = req.query;
       req.log.info({ msg: 'getActiveOrders called', tenant, query });
-      const res = await fx.getActiveOrders({ symbol: query?.symbol, count: query?.count, prevId: query?.prevId });
+      const res = await fx.getActiveOrders({
+        symbol: query?.symbol,
+        count: query?.count,
+        prevId: query?.prevId,
+      });
       req.log.info({ msg: 'getActiveOrders response', data: res });
       return reply.send(res);
-    }
+    },
   );
 
   app.post<{ Querystring: TenantQuery }>(
@@ -145,7 +151,7 @@ export function registerOrderRoutes(app: FastifyInstance) {
         const err = mapGmoError(e);
         return reply.status(400).send({ error: 'order_limit_failed', detail: String(err) });
       }
-    }
+    },
   );
 
   app.post<{ Querystring: TenantQuery }>(
@@ -158,26 +164,26 @@ export function registerOrderRoutes(app: FastifyInstance) {
         const fx = new FxPrivateRestClient(apiKey, secret);
         const body = SpeedOrderBody.parse(req.body);
 
-      const idem = (req.headers['idempotency-key'] as string) || undefined;
-      const cached = await getIdempotent(idem);
-      if (cached) return reply.status(cached.status).send(cached.body);
+        const idem = (req.headers['idempotency-key'] as string) || undefined;
+        const cached = await getIdempotent(idem);
+        if (cached) return reply.status(cached.status).send(cached.body);
 
-      const placed = await fx.speedOrder({
-        symbol: body.symbol,
-        side: body.side,
-        size: body.size,
-        clientOrderId: body.clientOrderId,
-        upperBound: body.upperBound,
-        lowerBound: body.lowerBound,
-        isHedgeable: body.isHedgeable,
-      });
-      if (idem) await setIdempotent(idem, 200, placed);
-      return reply.send(placed);
+        const placed = await fx.speedOrder({
+          symbol: body.symbol,
+          side: body.side,
+          size: body.size,
+          clientOrderId: body.clientOrderId,
+          upperBound: body.upperBound,
+          lowerBound: body.lowerBound,
+          isHedgeable: body.isHedgeable,
+        });
+        if (idem) await setIdempotent(idem, 200, placed);
+        return reply.send(placed);
       } catch (e) {
         const err = mapGmoError(e);
         return reply.status(400).send({ error: 'order_speed_failed', detail: String(err) });
       }
-    }
+    },
   );
 
   app.post<{ Querystring: TenantQuery }>(
@@ -207,7 +213,7 @@ export function registerOrderRoutes(app: FastifyInstance) {
         const err = mapGmoError(e);
         return reply.status(400).send({ error: 'order_cancel_failed', detail: String(err) });
       }
-    }
+    },
   );
 
   app.post<{ Querystring: TenantQuery }>(
@@ -220,29 +226,29 @@ export function registerOrderRoutes(app: FastifyInstance) {
         const fx = new FxPrivateRestClient(apiKey, secret);
         const body = OrderBody.parse(req.body);
 
-      const idem = (req.headers['idempotency-key'] as string) || undefined;
-      const cached = await getIdempotent(idem);
-      if (cached) return reply.status(cached.status).send(cached.body);
+        const idem = (req.headers['idempotency-key'] as string) || undefined;
+        const cached = await getIdempotent(idem);
+        if (cached) return reply.status(cached.status).send(cached.body);
 
-      const placed = await fx.placeOrder({
-        symbol: body.symbol,
-        side: body.side,
-        size: body.size,
-        executionType: body.executionType,
-        limitPrice: body.limitPrice,
-        stopPrice: body.stopPrice,
-        oco: body.oco,
-        clientOrderId: body.clientOrderId,
-        expireDate: body.expireDate,
-        settleType: body.settleType,
-      });
-      if (idem) await setIdempotent(idem, 200, placed);
-      return reply.send(placed);
+        const placed = await fx.placeOrder({
+          symbol: body.symbol,
+          side: body.side,
+          size: body.size,
+          executionType: body.executionType,
+          limitPrice: body.limitPrice,
+          stopPrice: body.stopPrice,
+          oco: body.oco,
+          clientOrderId: body.clientOrderId,
+          expireDate: body.expireDate,
+          settleType: body.settleType,
+        });
+        if (idem) await setIdempotent(idem, 200, placed);
+        return reply.send(placed);
       } catch (e) {
         const err = mapGmoError(e);
         return reply.status(400).send({ error: 'order_failed', detail: String(err) });
       }
-    }
+    },
   );
 
   app.post<{ Querystring: TenantQuery }>(
@@ -255,30 +261,30 @@ export function registerOrderRoutes(app: FastifyInstance) {
         const fx = new FxPrivateRestClient(apiKey, secret);
         const body = IfdOrderBody.parse(req.body);
 
-      const idem = (req.headers['idempotency-key'] as string) || undefined;
-      const cached = await getIdempotent(idem);
-      if (cached) return reply.status(cached.status).send(cached.body);
+        const idem = (req.headers['idempotency-key'] as string) || undefined;
+        const cached = await getIdempotent(idem);
+        if (cached) return reply.status(cached.status).send(cached.body);
 
-      const placed = await fx.placeIfdOrder({
-        symbol: body.symbol,
-        clientOrderId: body.clientOrderId,
-        firstSide: body.firstSide,
-        firstExecutionType: body.firstExecutionType,
-        firstSize: body.firstSize,
-        firstPrice: body.firstPrice,
-        firstStopPrice: body.firstStopPrice,
-        secondExecutionType: body.secondExecutionType,
-        secondSize: body.secondSize,
-        secondPrice: body.secondPrice,
-        secondStopPrice: body.secondStopPrice,
-      });
-      if (idem) await setIdempotent(idem, 200, placed);
-      return reply.send(placed);
+        const placed = await fx.placeIfdOrder({
+          symbol: body.symbol,
+          clientOrderId: body.clientOrderId,
+          firstSide: body.firstSide,
+          firstExecutionType: body.firstExecutionType,
+          firstSize: body.firstSize,
+          firstPrice: body.firstPrice,
+          firstStopPrice: body.firstStopPrice,
+          secondExecutionType: body.secondExecutionType,
+          secondSize: body.secondSize,
+          secondPrice: body.secondPrice,
+          secondStopPrice: body.secondStopPrice,
+        });
+        if (idem) await setIdempotent(idem, 200, placed);
+        return reply.send(placed);
       } catch (e) {
         const err = mapGmoError(e);
         return reply.status(400).send({ error: 'ifd_order_failed', detail: String(err) });
       }
-    }
+    },
   );
 
   app.post<{ Querystring: TenantQuery }>(
@@ -291,29 +297,29 @@ export function registerOrderRoutes(app: FastifyInstance) {
         const fx = new FxPrivateRestClient(apiKey, secret);
         const body = IfdocoOrderBody.parse(req.body);
 
-      const idem = (req.headers['idempotency-key'] as string) || undefined;
-      const cached = await getIdempotent(idem);
-      if (cached) return reply.status(cached.status).send(cached.body);
+        const idem = (req.headers['idempotency-key'] as string) || undefined;
+        const cached = await getIdempotent(idem);
+        if (cached) return reply.status(cached.status).send(cached.body);
 
-      const placed = await fx.placeIfdocoOrder({
-        symbol: body.symbol,
-        clientOrderId: body.clientOrderId,
-        firstSide: body.firstSide,
-        firstExecutionType: body.firstExecutionType,
-        firstSize: body.firstSize,
-        firstPrice: body.firstPrice,
-        firstStopPrice: body.firstStopPrice,
-        secondExecutionType: body.secondExecutionType,
-        secondLimitPrice: body.secondLimitPrice,
-        secondStopPrice: body.secondStopPrice,
-        secondSize: body.secondSize,
-      });
-      if (idem) await setIdempotent(idem, 200, placed);
-      return reply.send(placed);
+        const placed = await fx.placeIfdocoOrder({
+          symbol: body.symbol,
+          clientOrderId: body.clientOrderId,
+          firstSide: body.firstSide,
+          firstExecutionType: body.firstExecutionType,
+          firstSize: body.firstSize,
+          firstPrice: body.firstPrice,
+          firstStopPrice: body.firstStopPrice,
+          secondExecutionType: body.secondExecutionType,
+          secondLimitPrice: body.secondLimitPrice,
+          secondStopPrice: body.secondStopPrice,
+          secondSize: body.secondSize,
+        });
+        if (idem) await setIdempotent(idem, 200, placed);
+        return reply.send(placed);
       } catch (e) {
         const err = mapGmoError(e);
         return reply.status(400).send({ error: 'ifo_order_failed', detail: String(err) });
       }
-    }
+    },
   );
 }

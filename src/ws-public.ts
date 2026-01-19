@@ -138,7 +138,7 @@ export class FxPublicWsClient {
     const payload = {
       command: 'subscribe',
       channel: 'ticker',
-      symbol
+      symbol,
     };
 
     this.ws.send(JSON.stringify(payload));
@@ -160,7 +160,7 @@ export class FxPublicWsClient {
     const payload = {
       command: 'unsubscribe',
       channel: 'ticker',
-      symbol
+      symbol,
     };
 
     this.ws.send(JSON.stringify(payload));

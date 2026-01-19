@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import WebSocket from 'ws';
-import { FxPrivateWsAuth, FxPrivateWsClient, CryptoPrivateWsAuth, CryptoPrivateWsClient } from '../src/ws-private.js';
+import {
+  FxPrivateWsAuth,
+  FxPrivateWsClient,
+  CryptoPrivateWsAuth,
+  CryptoPrivateWsClient,
+} from '../src/ws-private.js';
 
 // Mock WebSocket
 vi.mock('ws', () => ({

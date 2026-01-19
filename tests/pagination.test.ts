@@ -8,7 +8,11 @@ describe('Unified Pagination', () => {
 
   beforeEach(() => {
     fxClient = new FxPrivateRestClient('test-fx-key', 'test-fx-secret', 'https://mock.test/forex');
-    cryptoClient = new CryptoPrivateRestClient('test-crypto-key', 'test-crypto-secret', 'https://mock.test/crypto');
+    cryptoClient = new CryptoPrivateRestClient(
+      'test-crypto-key',
+      'test-crypto-secret',
+      'https://mock.test/crypto',
+    );
 
     // Mock fetch to avoid actual HTTP calls
     global.fetch = vi.fn();
@@ -19,22 +23,33 @@ describe('Unified Pagination', () => {
       const mockResp = {
         status: 0,
         data: [
-          { rootOrderId: 1, orderId: 1, symbol: 'USD_JPY', side: 'BUY', orderType: 'NORMAL', executionType: 'LIMIT', settleType: 'OPEN', size: '1.0', timestamp: '2024-01-01T00:00:00Z', status: 'WAITING' }
+          {
+            rootOrderId: 1,
+            orderId: 1,
+            symbol: 'USD_JPY',
+            side: 'BUY',
+            orderType: 'NORMAL',
+            executionType: 'LIMIT',
+            settleType: 'OPEN',
+            size: '1.0',
+            timestamp: '2024-01-01T00:00:00Z',
+            status: 'WAITING',
+          },
         ],
-        responsetime: '2024-01-01T00:00:00Z'
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       // Should pass prevId and count to the API
       const result = await fxClient.getActiveOrders({
         symbol: 'USD_JPY',
         prevId: '123',
-        count: '50'
+        count: '50',
       });
 
       expect(result.status).toBe(0);
@@ -49,22 +64,20 @@ describe('Unified Pagination', () => {
     it('should support pagination on getOpenPositions', async () => {
       const mockResp = {
         status: 0,
-        data: [
-          { positionId: 1, symbol: 'USD_JPY', side: 'BUY', size: '1.0', price: '150.00' }
-        ],
-        responsetime: '2024-01-01T00:00:00Z'
+        data: [{ positionId: 1, symbol: 'USD_JPY', side: 'BUY', size: '1.0', price: '150.00' }],
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       const result = await fxClient.getOpenPositions({
         symbol: 'EUR_JPY',
         prevId: '456',
-        count: '25'
+        count: '25',
       });
 
       expect(result.status).toBe(0);
@@ -79,13 +92,13 @@ describe('Unified Pagination', () => {
       const mockResp = {
         status: 0,
         data: [],
-        responsetime: '2024-01-01T00:00:00Z'
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       const result = await fxClient.getActiveOrders({ symbol: 'USD_JPY' });
@@ -103,24 +116,24 @@ describe('Unified Pagination', () => {
       const mockResp = {
         status: 0,
         data: [],
-        responsetime: '2024-01-01T00:00:00Z'
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       // Try to use offset/limit on FX (not supported)
       await fxClient.getActiveOrders({
         symbol: 'USD_JPY',
         offset: '0',
-        limit: '50'
+        limit: '50',
       });
 
       expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('FX API does not support offset/limit pagination')
+        expect.stringContaining('FX API does not support offset/limit pagination'),
       );
 
       warnSpy.mockRestore();
@@ -132,20 +145,29 @@ describe('Unified Pagination', () => {
       const mockResp = {
         status: 0,
         data: [
-          { rootOrderId: '1', orderId: '1', symbol: 'BTC', side: 'BUY', executionType: 'LIMIT', size: '0.1', status: 'WAITING', timestamp: '2024-01-01T00:00:00Z' }
+          {
+            rootOrderId: '1',
+            orderId: '1',
+            symbol: 'BTC',
+            side: 'BUY',
+            executionType: 'LIMIT',
+            size: '0.1',
+            status: 'WAITING',
+            timestamp: '2024-01-01T00:00:00Z',
+          },
         ],
-        responsetime: '2024-01-01T00:00:00Z'
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       const result = await cryptoClient.getActiveOrders({
         symbol: 'BTC',
-        limit: '100'
+        limit: '100',
       });
 
       expect(result.status).toBe(0);
@@ -160,17 +182,17 @@ describe('Unified Pagination', () => {
       const mockResp = {
         status: 0,
         data: [],
-        responsetime: '2024-01-01T00:00:00Z'
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       const result = await cryptoClient.getOpenPositions({
-        pageSize: '50'
+        pageSize: '50',
       });
 
       expect(result.status).toBe(0);
@@ -184,19 +206,19 @@ describe('Unified Pagination', () => {
       const mockResp = {
         status: 0,
         data: [],
-        responsetime: '2024-01-01T00:00:00Z'
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       await cryptoClient.getLatestExecutions({
         symbol: 'ETH',
         limit: '75',
-        pageSize: '25' // Should be ignored
+        pageSize: '25', // Should be ignored
       });
 
       // Verify limit takes precedence
@@ -211,21 +233,29 @@ describe('Unified Pagination', () => {
       const mockResp = {
         status: 0,
         data: [
-          { executionId: '1', orderId: '1', symbol: 'BTC', side: 'BUY', executedPrice: '50000', executedSize: '0.1', timestamp: '2024-01-01T00:00:00Z' }
+          {
+            executionId: '1',
+            orderId: '1',
+            symbol: 'BTC',
+            side: 'BUY',
+            executedPrice: '50000',
+            executedSize: '0.1',
+            timestamp: '2024-01-01T00:00:00Z',
+          },
         ],
-        responsetime: '2024-01-01T00:00:00Z'
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       const result = await cryptoClient.getExecutions({
         symbol: 'BTC',
         orderId: '123',
-        limit: '50'
+        limit: '50',
       });
 
       expect(result.status).toBe(0);
@@ -241,23 +271,23 @@ describe('Unified Pagination', () => {
       const mockResp = {
         status: 0,
         data: [],
-        responsetime: '2024-01-01T00:00:00Z'
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       // Try to use prevId on Crypto (not supported)
       await cryptoClient.getActiveOrders({
         symbol: 'BTC',
-        prevId: '123'
+        prevId: '123',
       });
 
       expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Crypto API does not support cursor-based pagination')
+        expect.stringContaining('Crypto API does not support cursor-based pagination'),
       );
 
       warnSpy.mockRestore();
@@ -269,20 +299,20 @@ describe('Unified Pagination', () => {
       const mockResp = {
         status: 0,
         data: [],
-        responsetime: '2024-01-01T00:00:00Z'
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       // Old way of calling (directly passing prevId and count)
       const result = await fxClient.getActiveOrders({
         symbol: 'USD_JPY',
         prevId: 'old-way-123',
-        count: '10'
+        count: '10',
       });
 
       expect(result.status).toBe(0);
@@ -296,19 +326,19 @@ describe('Unified Pagination', () => {
       const mockResp = {
         status: 0,
         data: [],
-        responsetime: '2024-01-01T00:00:00Z'
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       // Old way of calling (directly passing pageSize)
       const result = await cryptoClient.getActiveOrders({
         symbol: 'BTC',
-        pageSize: '20'
+        pageSize: '20',
       });
 
       expect(result.status).toBe(0);
@@ -325,7 +355,7 @@ describe('Unified Pagination', () => {
         count: '50',
         limit: '100',
         pageSize: '50',
-        offset: '0'
+        offset: '0',
       };
 
       expect(opts.prevId).toBe('cursor-123');
@@ -339,7 +369,7 @@ describe('Unified Pagination', () => {
       const opts: Parameters<typeof fxClient.getActiveOrders>[0] = {
         symbol: 'USD_JPY',
         prevId: '123',
-        count: '50'
+        count: '50',
       };
 
       expect(opts.symbol).toBe('USD_JPY');
@@ -350,7 +380,7 @@ describe('Unified Pagination', () => {
     it('should allow mixing symbol with pagination options in Crypto', () => {
       const opts: Parameters<typeof cryptoClient.getActiveOrders>[0] = {
         symbol: 'BTC',
-        limit: '100'
+        limit: '100',
       };
 
       expect(opts.symbol).toBe('BTC');
@@ -363,13 +393,13 @@ describe('Unified Pagination', () => {
       const mockResp = {
         status: 0,
         data: [],
-        responsetime: '2024-01-01T00:00:00Z'
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       const result = await fxClient.getActiveOrders({});
@@ -381,13 +411,13 @@ describe('Unified Pagination', () => {
       const mockResp = {
         status: 0,
         data: [],
-        responsetime: '2024-01-01T00:00:00Z'
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       const result = await cryptoClient.getOpenPositions(undefined);
@@ -399,18 +429,18 @@ describe('Unified Pagination', () => {
       const mockResp = {
         status: 0,
         data: [],
-        responsetime: '2024-01-01T00:00:00Z'
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       await cryptoClient.getActiveOrders({
         offset: '0',
-        limit: '1'
+        limit: '1',
       });
 
       // Should still send limit as pageSize

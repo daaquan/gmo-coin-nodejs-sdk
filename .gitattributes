@@ -1,0 +1,13 @@
+* text=auto eol=lf
+
+*.js text
+*.ts text
+*.json text
+*.yml text
+*.md text
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary

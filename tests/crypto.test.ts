@@ -24,13 +24,13 @@ describe('CryptoPrivateRestClient', () => {
   describe('constructor', () => {
     it('should throw error if API key is missing', () => {
       expect(() => new CryptoPrivateRestClient('', mockSecret)).toThrow(
-        'CryptoPrivateRestClient: Missing API credentials'
+        'CryptoPrivateRestClient: Missing API credentials',
       );
     });
 
     it('should throw error if secret is missing', () => {
       expect(() => new CryptoPrivateRestClient(mockApiKey, '')).toThrow(
-        'CryptoPrivateRestClient: Missing API credentials'
+        'CryptoPrivateRestClient: Missing API credentials',
       );
     });
 
@@ -440,7 +440,7 @@ describe('CryptoPrivateRestClient', () => {
           side: 'BUY' as const,
           executionType: 'LIMIT' as const,
           size: '0.5',
-        })
+        }),
       ).toThrow('LIMIT orders require price field');
     });
 
@@ -476,7 +476,7 @@ describe('CryptoPrivateRestClient', () => {
           side: 'SELL' as const,
           executionType: 'STOP' as const,
           size: '0.5',
-        })
+        }),
       ).toThrow('STOP orders require losscutPrice field');
     });
 
@@ -498,7 +498,7 @@ describe('CryptoPrivateRestClient', () => {
           side: 'BUY' as const,
           executionType: 'MARKET' as const,
           size: '1000.0', // Very large order
-        })
+        }),
       ).rejects.toThrow();
     });
   });
@@ -685,9 +685,7 @@ describe('CryptoPrivateRestClient', () => {
         json: vi.fn().mockResolvedValue(mockResponse),
       });
 
-      await expect(client.closePosition('BTC', '0.5')).rejects.toThrow(
-        /No open position/
-      );
+      await expect(client.closePosition('BTC', '0.5')).rejects.toThrow(/No open position/);
     });
   });
 
@@ -744,7 +742,7 @@ describe('CryptoPrivateRestClient', () => {
           size: '0.5',
           limitPrice: '',
           stopPrice: '42000.00',
-        })
+        }),
       ).toThrow('OCO orders require limitPrice field');
     });
 
@@ -756,7 +754,7 @@ describe('CryptoPrivateRestClient', () => {
           size: '0.5',
           limitPrice: '46000.00',
           stopPrice: '',
-        })
+        }),
       ).toThrow('OCO orders require stopPrice field');
     });
   });
@@ -800,7 +798,7 @@ describe('CryptoPrivateRestClient', () => {
           secondExecutionType: 'LIMIT',
           secondSize: '0.5',
           secondPrice: '46000.00',
-        })
+        }),
       ).toThrow('First leg LIMIT requires firstPrice field');
     });
 
@@ -814,7 +812,7 @@ describe('CryptoPrivateRestClient', () => {
           firstPrice: '45000.00',
           secondExecutionType: 'STOP',
           secondSize: '0.5',
-        })
+        }),
       ).toThrow('Second leg STOP requires secondStopPrice field');
     });
   });
@@ -859,7 +857,7 @@ describe('CryptoPrivateRestClient', () => {
           secondLimitPrice: '',
           secondStopPrice: '42000.00',
           secondSize: '0.5',
-        })
+        }),
       ).toThrow('IFDOCO requires secondLimitPrice field');
     });
 
@@ -874,7 +872,7 @@ describe('CryptoPrivateRestClient', () => {
           secondLimitPrice: '46000.00',
           secondStopPrice: '',
           secondSize: '0.5',
-        })
+        }),
       ).toThrow('IFDOCO requires secondStopPrice field');
     });
   });

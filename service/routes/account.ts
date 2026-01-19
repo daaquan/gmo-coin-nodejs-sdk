@@ -41,6 +41,6 @@ export function registerAccountRoutes(app: FastifyInstance) {
         const err = String(e);
         return reply.status(400).send({ error: 'assets_fetch_failed', detail: err });
       }
-    }
+    },
   );
 }

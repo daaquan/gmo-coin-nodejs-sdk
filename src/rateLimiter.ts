@@ -15,4 +15,3 @@ export class FixedGate {
 export const getGate = new FixedGate(6);
 export const postGate = new FixedGate(1);
 export const wsGate = new FixedGate(1);
-

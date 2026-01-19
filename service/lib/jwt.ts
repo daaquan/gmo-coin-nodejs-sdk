@@ -19,4 +19,3 @@ export async function verifyJwt(authorization?: string, opts?: JwtOptions): Prom
   });
   return payload;
 }
-

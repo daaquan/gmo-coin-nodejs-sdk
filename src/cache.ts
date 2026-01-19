@@ -74,7 +74,7 @@ export class TtlCache<T = unknown> {
     // Add new entry
     this.cache.set(key, {
       value,
-      expiresAt: Date.now() + ttlMs
+      expiresAt: Date.now() + ttlMs,
     });
 
     // Update access order
@@ -173,12 +173,14 @@ export class TtlCache<T = unknown> {
  * Useful for caching function results
  */
 export function createCacheKey(namespace: string, args: unknown[]): string {
-  const argsStr = args.map(arg => {
-    if (typeof arg === 'object' && arg !== null) {
-      return JSON.stringify(arg);
-    }
-    return String(arg);
-  }).join(':');
+  const argsStr = args
+    .map((arg) => {
+      if (typeof arg === 'object' && arg !== null) {
+        return JSON.stringify(arg);
+      }
+      return String(arg);
+    })
+    .join(':');
 
   return `${namespace}:${argsStr}`;
 }
@@ -192,13 +194,9 @@ export function createCacheKey(namespace: string, args: unknown[]): string {
 export function withCache<T extends (...args: any[]) => Promise<any>>(
   cache: TtlCache,
   namespace: string,
-  ttl?: number
+  ttl?: number,
 ) {
-  return function (
-    target: any,
-    propertyKey: string,
-    descriptor: PropertyDescriptor
-  ) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {

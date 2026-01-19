@@ -10,10 +10,7 @@ import type * as T from '../../src/types.js';
 /**
  * Create a type-safe API envelope mock
  */
-export function createMockEnvelope<TData>(
-  data: TData,
-  status = 0
-): T.ApiEnvelope<TData> {
+export function createMockEnvelope<TData>(data: TData, status = 0): T.ApiEnvelope<TData> {
   return {
     status,
     data,
@@ -26,7 +23,7 @@ export function createMockEnvelope<TData>(
  */
 export function createErrorEnvelope(
   code: string,
-  message: string
+  message: string,
 ): T.ApiEnvelope<{ code: string; message: string }> {
   return {
     status: 1,
@@ -60,9 +57,7 @@ export interface MockFastifyReply {
 /**
  * Create a mock Fastify request
  */
-export function createMockRequest(
-  overrides: Partial<MockFastifyRequest> = {}
-): MockFastifyRequest {
+export function createMockRequest(overrides: Partial<MockFastifyRequest> = {}): MockFastifyRequest {
   return {
     headers: {},
     query: {},
@@ -107,9 +102,7 @@ export interface MockRedis {
 /**
  * Create a mock Redis client
  */
-export function createMockRedis(
-  status: MockRedis['status'] = 'ready'
-): MockRedis {
+export function createMockRedis(status: MockRedis['status'] = 'ready'): MockRedis {
   return {
     get: vi.fn().mockResolvedValue(null),
     set: vi.fn().mockResolvedValue('OK'),
@@ -135,7 +128,7 @@ export interface IdempotencyEntry {
 export function createMockEntry(
   status = 200,
   body: unknown = { result: 'ok' },
-  ttlMs = 600000
+  ttlMs = 600000,
 ): IdempotencyEntry {
   return {
     status,
@@ -148,9 +141,7 @@ export function createMockEntry(
 /**
  * Create an expired idempotency entry
  */
-export function createExpiredEntry(
-  body: unknown = { result: 'expired' }
-): IdempotencyEntry {
+export function createExpiredEntry(body: unknown = { result: 'expired' }): IdempotencyEntry {
   return {
     status: 200,
     body,
@@ -164,10 +155,7 @@ export function createExpiredEntry(
 /**
  * Create a valid FX LIMIT order request
  */
-export function createFxLimitOrder(
-  symbol: string = 'USD_JPY',
-  side: T.Side = 'BUY'
-): T.FxOrderReq {
+export function createFxLimitOrder(symbol: string = 'USD_JPY', side: T.Side = 'BUY'): T.FxOrderReq {
   return {
     symbol,
     side,
@@ -180,10 +168,7 @@ export function createFxLimitOrder(
 /**
  * Create a valid FX STOP order request
  */
-export function createFxStopOrder(
-  symbol: string = 'USD_JPY',
-  side: T.Side = 'SELL'
-): T.FxOrderReq {
+export function createFxStopOrder(symbol: string = 'USD_JPY', side: T.Side = 'SELL'): T.FxOrderReq {
   return {
     symbol,
     side,
@@ -196,10 +181,7 @@ export function createFxStopOrder(
 /**
  * Create a valid FX OCO order request
  */
-export function createFxOcoOrder(
-  symbol: string = 'USD_JPY',
-  side: T.Side = 'BUY'
-): T.FxOrderReq {
+export function createFxOcoOrder(symbol: string = 'USD_JPY', side: T.Side = 'BUY'): T.FxOrderReq {
   return {
     symbol,
     side,
@@ -217,7 +199,7 @@ export function createFxOcoOrder(
  */
 export function createCryptoMarketOrder(
   symbol: string = 'BTC',
-  side: T.Side = 'BUY'
+  side: T.Side = 'BUY',
 ): T.CryptoOrderReq {
   return {
     symbol,
@@ -232,7 +214,7 @@ export function createCryptoMarketOrder(
  */
 export function createCryptoLimitOrder(
   symbol: string = 'BTC',
-  side: T.Side = 'BUY'
+  side: T.Side = 'BUY',
 ): T.CryptoOrderReq {
   return {
     symbol,
@@ -248,7 +230,7 @@ export function createCryptoLimitOrder(
  */
 export function createCryptoStopOrder(
   symbol: string = 'BTC',
-  side: T.Side = 'SELL'
+  side: T.Side = 'SELL',
 ): T.CryptoOrderReq {
   return {
     symbol,
@@ -262,20 +244,66 @@ export function createCryptoStopOrder(
 // ====== Symbol Lists ======
 
 export const FX_SYMBOLS = [
-  'USD_JPY', 'EUR_JPY', 'GBP_JPY', 'AUD_JPY', 'NZD_JPY',
-  'CAD_JPY', 'CHF_JPY', 'ZAR_JPY', 'TRY_JPY', 'CNY_JPY',
-  'HKD_JPY', 'SGD_JPY', 'INR_JPY', 'MXN_JPY', 'BRL_JPY',
-  'EUR_USD', 'GBP_USD', 'AUD_USD',
+  'USD_JPY',
+  'EUR_JPY',
+  'GBP_JPY',
+  'AUD_JPY',
+  'NZD_JPY',
+  'CAD_JPY',
+  'CHF_JPY',
+  'ZAR_JPY',
+  'TRY_JPY',
+  'CNY_JPY',
+  'HKD_JPY',
+  'SGD_JPY',
+  'INR_JPY',
+  'MXN_JPY',
+  'BRL_JPY',
+  'EUR_USD',
+  'GBP_USD',
+  'AUD_USD',
 ] as const;
 
 export const CRYPTO_SYMBOLS = [
-  'BTC', 'ETH', 'BCH', 'LTC', 'XRP', 'XEM', 'XLM', 'BAT', 'OMG',
-  'XTZ', 'QTUM', 'ENJ', 'DOT', 'ATOM', 'ADA', 'MKR', 'DAI', 'LINK',
-  'SOL', 'MATIC', 'AAVE', 'UNI', 'AVAX', 'DOGE', 'SHIB',
+  'BTC',
+  'ETH',
+  'BCH',
+  'LTC',
+  'XRP',
+  'XEM',
+  'XLM',
+  'BAT',
+  'OMG',
+  'XTZ',
+  'QTUM',
+  'ENJ',
+  'DOT',
+  'ATOM',
+  'ADA',
+  'MKR',
+  'DAI',
+  'LINK',
+  'SOL',
+  'MATIC',
+  'AAVE',
+  'UNI',
+  'AVAX',
+  'DOGE',
+  'SHIB',
 ] as const;
 
 export const KLINE_INTERVALS = [
-  '1m', '5m', '15m', '30m', '1h', '4h', '8h', '12h', '1d', '1w', '1M',
+  '1m',
+  '5m',
+  '15m',
+  '30m',
+  '1h',
+  '4h',
+  '8h',
+  '12h',
+  '1d',
+  '1w',
+  '1M',
 ] as const;
 
 export type FxSymbol = (typeof FX_SYMBOLS)[number];

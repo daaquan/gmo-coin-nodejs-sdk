@@ -19,10 +19,19 @@ export async function getIdempotent(key?: string): Promise<Entry | undefined> {
   await ensureRedisConnected();
   const raw = await r.get(`idem:${key}`);
   if (!raw) return undefined;
-  try { return JSON.parse(raw) as Entry; } catch { return undefined; }
+  try {
+    return JSON.parse(raw) as Entry;
+  } catch {
+    return undefined;
+  }
 }
 
-export async function setIdempotent(key: string, status: number, body: unknown, ttlMs = 10 * 60 * 1000) {
+export async function setIdempotent(
+  key: string,
+  status: number,
+  body: unknown,
+  ttlMs = 10 * 60 * 1000,
+) {
   const entry: Entry = { status, body, createdAt: Date.now(), ttlMs };
   const r = getRedis();
   if (!r) {

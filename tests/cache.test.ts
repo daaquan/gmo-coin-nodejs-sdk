@@ -47,7 +47,7 @@ describe('TtlCache', () => {
       expect(shortCache.get('key1')).toBe('value1');
 
       // Wait for expiration
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(shortCache.get('key1')).toBeUndefined();
     });
@@ -56,7 +56,7 @@ describe('TtlCache', () => {
       cache.set('key1', 'value1', 50); // 50ms TTL
       cache.set('key2', 'value2', 5000); // 5s TTL
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(cache.get('key1')).toBeUndefined();
       expect(cache.get('key2')).toBe('value2');
@@ -65,7 +65,7 @@ describe('TtlCache', () => {
     it('should not expire entries before TTL', async () => {
       cache.set('key1', 'value1', 200);
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(cache.get('key1')).toBe('value1');
     });
@@ -84,7 +84,7 @@ describe('TtlCache', () => {
 
       expect(shortCache.has('key1')).toBe(true);
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(shortCache.has('key1')).toBe(false);
     });
@@ -168,7 +168,7 @@ describe('TtlCache', () => {
       testCache.set('key1', 'value1');
       testCache.set('key2', 'value2');
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Both entries should be expired
       const cleaned = testCache.cleanup();
@@ -180,7 +180,7 @@ describe('TtlCache', () => {
       cache.set('key1', 'value1');
       cache.set('key2', 'value2', 5000);
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const cleaned = cache.cleanup();
       expect(cleaned).toBe(0);
@@ -245,14 +245,22 @@ describe('Public API Caching', () => {
     it('should cache ticker results', async () => {
       const mockResp = {
         status: 0,
-        data: { symbol: 'USD_JPY', bid: '150.00', ask: '150.10', high: '151.00', low: '149.00', volume: '1000000', timestamp: '2024-01-01T00:00:00Z' },
-        responsetime: '2024-01-01T00:00:00Z'
+        data: {
+          symbol: 'USD_JPY',
+          bid: '150.00',
+          ask: '150.10',
+          high: '151.00',
+          low: '149.00',
+          volume: '1000000',
+          timestamp: '2024-01-01T00:00:00Z',
+        },
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       // First call should hit the API
@@ -272,14 +280,19 @@ describe('Public API Caching', () => {
     it('should cache orderbook results', async () => {
       const mockResp = {
         status: 0,
-        data: { symbol: 'USD_JPY', bids: [['150.00', '1000']], asks: [['150.10', '1000']], timestamp: '2024-01-01T00:00:00Z' },
-        responsetime: '2024-01-01T00:00:00Z'
+        data: {
+          symbol: 'USD_JPY',
+          bids: [['150.00', '1000']],
+          asks: [['150.10', '1000']],
+          timestamp: '2024-01-01T00:00:00Z',
+        },
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       // First call
@@ -296,14 +309,30 @@ describe('Public API Caching', () => {
     it('should use separate cache for different symbols', async () => {
       const usdResp = {
         status: 0,
-        data: { symbol: 'USD_JPY', bid: '150.00', ask: '150.10', high: '151.00', low: '149.00', volume: '1000000', timestamp: '2024-01-01T00:00:00Z' },
-        responsetime: '2024-01-01T00:00:00Z'
+        data: {
+          symbol: 'USD_JPY',
+          bid: '150.00',
+          ask: '150.10',
+          high: '151.00',
+          low: '149.00',
+          volume: '1000000',
+          timestamp: '2024-01-01T00:00:00Z',
+        },
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       const eurResp = {
         status: 0,
-        data: { symbol: 'EUR_JPY', bid: '160.00', ask: '160.10', high: '161.00', low: '159.00', volume: '1000000', timestamp: '2024-01-01T00:00:00Z' },
-        responsetime: '2024-01-01T00:00:00Z'
+        data: {
+          symbol: 'EUR_JPY',
+          bid: '160.00',
+          ask: '160.10',
+          high: '161.00',
+          low: '159.00',
+          volume: '1000000',
+          timestamp: '2024-01-01T00:00:00Z',
+        },
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       let callCount = 0;
@@ -340,14 +369,22 @@ describe('Public API Caching', () => {
 
       const mockResp = {
         status: 0,
-        data: { symbol: 'USD_JPY', bid: '150.00', ask: '150.10', high: '151.00', low: '149.00', volume: '1000000', timestamp: '2024-01-01T00:00:00Z' },
-        responsetime: '2024-01-01T00:00:00Z'
+        data: {
+          symbol: 'USD_JPY',
+          bid: '150.00',
+          ask: '150.10',
+          high: '151.00',
+          low: '149.00',
+          volume: '1000000',
+          timestamp: '2024-01-01T00:00:00Z',
+        },
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       // First call
@@ -359,7 +396,7 @@ describe('Public API Caching', () => {
       expect((global.fetch as any).mock.calls).toHaveLength(1);
 
       // Wait for TTL to expire
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Third call (cache expired, should hit API)
       await shortTtlClient.getTicker('USD_JPY');
@@ -371,14 +408,22 @@ describe('Public API Caching', () => {
     it('should cache ticker results', async () => {
       const mockResp = {
         status: 0,
-        data: { symbol: 'BTC', bid: '50000', ask: '50100', high: '51000', low: '49000', volume: '1000', timestamp: '2024-01-01T00:00:00Z' },
-        responsetime: '2024-01-01T00:00:00Z'
+        data: {
+          symbol: 'BTC',
+          bid: '50000',
+          ask: '50100',
+          high: '51000',
+          low: '49000',
+          volume: '1000',
+          timestamp: '2024-01-01T00:00:00Z',
+        },
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       // First call
@@ -395,14 +440,19 @@ describe('Public API Caching', () => {
     it('should cache orderbook results', async () => {
       const mockResp = {
         status: 0,
-        data: { symbol: 'ETH', bids: [['3000', '10']], asks: [['3010', '10']], timestamp: '2024-01-01T00:00:00Z' },
-        responsetime: '2024-01-01T00:00:00Z'
+        data: {
+          symbol: 'ETH',
+          bids: [['3000', '10']],
+          asks: [['3010', '10']],
+          timestamp: '2024-01-01T00:00:00Z',
+        },
+        responsetime: '2024-01-01T00:00:00Z',
       };
 
       (global.fetch as any).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResp
+        json: async () => mockResp,
       });
 
       // First call

@@ -16,10 +16,24 @@ const SizeSchema = z.string().regex(/^\d+(\.\d+)?$/, 'Invalid size format');
 // ====== FX SYMBOLS ======
 
 const FxSymbols = [
-  'USD_JPY', 'EUR_JPY', 'GBP_JPY', 'AUD_JPY', 'NZD_JPY',
-  'CAD_JPY', 'CHF_JPY', 'ZAR_JPY', 'TRY_JPY', 'CNY_JPY',
-  'HKD_JPY', 'SGD_JPY', 'INR_JPY', 'MXN_JPY', 'BRL_JPY',
-  'EUR_USD', 'GBP_USD', 'AUD_USD',
+  'USD_JPY',
+  'EUR_JPY',
+  'GBP_JPY',
+  'AUD_JPY',
+  'NZD_JPY',
+  'CAD_JPY',
+  'CHF_JPY',
+  'ZAR_JPY',
+  'TRY_JPY',
+  'CNY_JPY',
+  'HKD_JPY',
+  'SGD_JPY',
+  'INR_JPY',
+  'MXN_JPY',
+  'BRL_JPY',
+  'EUR_USD',
+  'GBP_USD',
+  'AUD_USD',
 ] as const;
 
 const FxSymbolSchema = z.enum(FxSymbols);
@@ -27,9 +41,31 @@ const FxSymbolSchema = z.enum(FxSymbols);
 // ====== CRYPTO SYMBOLS ======
 
 const CryptoSymbols = [
-  'BTC', 'ETH', 'BCH', 'LTC', 'XRP', 'XEM', 'XLM', 'BAT', 'OMG',
-  'XTZ', 'QTUM', 'ENJ', 'DOT', 'ATOM', 'ADA', 'MKR', 'DAI', 'LINK',
-  'SOL', 'MATIC', 'AAVE', 'UNI', 'AVAX', 'DOGE', 'SHIB',
+  'BTC',
+  'ETH',
+  'BCH',
+  'LTC',
+  'XRP',
+  'XEM',
+  'XLM',
+  'BAT',
+  'OMG',
+  'XTZ',
+  'QTUM',
+  'ENJ',
+  'DOT',
+  'ATOM',
+  'ADA',
+  'MKR',
+  'DAI',
+  'LINK',
+  'SOL',
+  'MATIC',
+  'AAVE',
+  'UNI',
+  'AVAX',
+  'DOGE',
+  'SHIB',
 ] as const;
 
 const CryptoSymbolSchema = z.enum(CryptoSymbols);
@@ -40,54 +76,60 @@ const CryptoSymbolSchema = z.enum(CryptoSymbols);
  * FX Order Request Validation
  * Validates symbol, side, execution type, and price/size fields
  */
-export const FxOrderReqSchema = z.object({
-  symbol: FxSymbolSchema,
-  side: SideSchema,
-  executionType: z.enum(['LIMIT', 'STOP', 'OCO']),
-  size: SizeSchema,
-  limitPrice: PriceSchema.optional(),
-  stopPrice: PriceSchema.optional(),
-  oco: z.object({
-    limitPrice: PriceSchema,
-    stopPrice: PriceSchema,
-  }).optional(),
-}).refine(
-  (data) => {
-    if (data.executionType === 'LIMIT' && !data.limitPrice) return false;
-    if (data.executionType === 'STOP' && !data.stopPrice) return false;
-    if (data.executionType === 'OCO' && !data.oco) return false;
-    return true;
-  },
-  {
-    message: 'Missing required price field for execution type',
-  }
-);
+export const FxOrderReqSchema = z
+  .object({
+    symbol: FxSymbolSchema,
+    side: SideSchema,
+    executionType: z.enum(['LIMIT', 'STOP', 'OCO']),
+    size: SizeSchema,
+    limitPrice: PriceSchema.optional(),
+    stopPrice: PriceSchema.optional(),
+    oco: z
+      .object({
+        limitPrice: PriceSchema,
+        stopPrice: PriceSchema,
+      })
+      .optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.executionType === 'LIMIT' && !data.limitPrice) return false;
+      if (data.executionType === 'STOP' && !data.stopPrice) return false;
+      if (data.executionType === 'OCO' && !data.oco) return false;
+      return true;
+    },
+    {
+      message: 'Missing required price field for execution type',
+    },
+  );
 
 /**
  * FX IFD Order Validation
  */
-export const FxIfdOrderReqSchema = z.object({
-  symbol: FxSymbolSchema,
-  side: SideSchema,
-  size: SizeSchema,
-  firstExecutionType: z.enum(['LIMIT', 'STOP', 'OCO']),
-  firstPrice: PriceSchema.optional(),
-  firstStopPrice: PriceSchema.optional(),
-  secondExecutionType: z.enum(['LIMIT', 'STOP']),
-  secondPrice: PriceSchema.optional(),
-  secondStopPrice: PriceSchema.optional(),
-}).refine(
-  (data) => {
-    if (data.firstExecutionType === 'LIMIT' && !data.firstPrice) return false;
-    if (data.firstExecutionType === 'STOP' && !data.firstStopPrice) return false;
-    if (data.secondExecutionType === 'LIMIT' && !data.secondPrice) return false;
-    if (data.secondExecutionType === 'STOP' && !data.secondStopPrice) return false;
-    return true;
-  },
-  {
-    message: 'Missing required price fields for IFD order',
-  }
-);
+export const FxIfdOrderReqSchema = z
+  .object({
+    symbol: FxSymbolSchema,
+    side: SideSchema,
+    size: SizeSchema,
+    firstExecutionType: z.enum(['LIMIT', 'STOP', 'OCO']),
+    firstPrice: PriceSchema.optional(),
+    firstStopPrice: PriceSchema.optional(),
+    secondExecutionType: z.enum(['LIMIT', 'STOP']),
+    secondPrice: PriceSchema.optional(),
+    secondStopPrice: PriceSchema.optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.firstExecutionType === 'LIMIT' && !data.firstPrice) return false;
+      if (data.firstExecutionType === 'STOP' && !data.firstStopPrice) return false;
+      if (data.secondExecutionType === 'LIMIT' && !data.secondPrice) return false;
+      if (data.secondExecutionType === 'STOP' && !data.secondStopPrice) return false;
+      return true;
+    },
+    {
+      message: 'Missing required price fields for IFD order',
+    },
+  );
 
 /**
  * FX Close Order Validation
@@ -96,16 +138,22 @@ export const FxCloseOrderReqSchema = z.object({
   symbol: FxSymbolSchema,
   side: SideSchema,
   executionType: z.enum(['LIMIT', 'STOP', 'OCO']),
-  settlePosition: z.array(z.object({
-    positionId: z.string().min(1),
-    size: SizeSchema,
-  })).min(1, 'At least one position must be provided'),
+  settlePosition: z
+    .array(
+      z.object({
+        positionId: z.string().min(1),
+        size: SizeSchema,
+      }),
+    )
+    .min(1, 'At least one position must be provided'),
   limitPrice: PriceSchema.optional(),
   stopPrice: PriceSchema.optional(),
-  oco: z.object({
-    limitPrice: PriceSchema,
-    stopPrice: PriceSchema,
-  }).optional(),
+  oco: z
+    .object({
+      limitPrice: PriceSchema,
+      stopPrice: PriceSchema,
+    })
+    .optional(),
 });
 
 // ====== CRYPTO VALIDATION SCHEMAS ======
@@ -113,24 +161,26 @@ export const FxCloseOrderReqSchema = z.object({
 /**
  * Crypto Order Request Validation
  */
-export const CryptoOrderReqSchema = z.object({
-  symbol: CryptoSymbolSchema,
-  side: SideSchema,
-  executionType: z.enum(['MARKET', 'LIMIT', 'STOP']),
-  size: SizeSchema,
-  price: PriceSchema.optional(),
-  losscutPrice: PriceSchema.optional(),
-  timeInForce: z.enum(['FAK', 'FAS', 'SOK']).optional(),
-}).refine(
-  (data) => {
-    if (data.executionType === 'LIMIT' && !data.price) return false;
-    if (data.executionType === 'STOP' && !data.losscutPrice) return false;
-    return true;
-  },
-  {
-    message: 'Missing required price field for execution type',
-  }
-);
+export const CryptoOrderReqSchema = z
+  .object({
+    symbol: CryptoSymbolSchema,
+    side: SideSchema,
+    executionType: z.enum(['MARKET', 'LIMIT', 'STOP']),
+    size: SizeSchema,
+    price: PriceSchema.optional(),
+    losscutPrice: PriceSchema.optional(),
+    timeInForce: z.enum(['FAK', 'FAS', 'SOK']).optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.executionType === 'LIMIT' && !data.price) return false;
+      if (data.executionType === 'STOP' && !data.losscutPrice) return false;
+      return true;
+    },
+    {
+      message: 'Missing required price field for execution type',
+    },
+  );
 
 // ====== PUBLIC API VALIDATION ======
 
@@ -219,7 +269,7 @@ export function getCryptoSymbols(): readonly string[] {
  * Safe validation - returns error message instead of throwing
  */
 export function validateFxOrderSafe(
-  data: unknown
+  data: unknown,
 ): { valid: true; data: T.FxOrderReq } | { valid: false; error: string } {
   try {
     return { valid: true, data: FxOrderReqSchema.parse(data) as T.FxOrderReq };
@@ -230,7 +280,7 @@ export function validateFxOrderSafe(
 }
 
 export function validateCryptoOrderSafe(
-  data: unknown
+  data: unknown,
 ): { valid: true; data: T.CryptoOrderReq } | { valid: false; error: string } {
   try {
     return { valid: true, data: CryptoOrderReqSchema.parse(data) as T.CryptoOrderReq };

@@ -152,7 +152,9 @@ export interface FxChangeIfdocoReq {
 export type FxChangeIfdResp = ApiEnvelope<FxActiveOrder[]>;
 export type FxChangeIfdocoResp = ApiEnvelope<FxActiveOrder[]>;
 
-export interface FxCancelOrdersReq { rootOrderIds: number[]; }
+export interface FxCancelOrdersReq {
+  rootOrderIds: number[];
+}
 export type FxCancelOrdersResp = ApiEnvelope<FxActiveOrder[]>;
 
 export interface FxCancelBulkReq {
@@ -339,8 +341,8 @@ export interface CryptoChangeIfdocoOrderReq {
 export type CryptoChangeIfdocoOrderResp = ApiEnvelope<CryptoActiveOrder[]>;
 
 /** Crypto Cancel Multiple Orders */
-export interface CryptoCancelOrdersReq { 
-  rootOrderIds: string[]; 
+export interface CryptoCancelOrdersReq {
+  rootOrderIds: string[];
 }
 export type CryptoCancelOrdersResp = ApiEnvelope<CryptoActiveOrder[]>;
 
@@ -357,12 +359,12 @@ export type CryptoCancelBulkResp = ApiEnvelope<null>;
 /** Ticker Information */
 export interface Ticker {
   symbol: string;
-  bid: string;           // Best bid price
-  ask: string;           // Best ask price
-  high: string;          // 24h high
-  low: string;           // 24h low
-  volume: string;        // 24h volume
-  timestamp: string;     // ISO8601
+  bid: string; // Best bid price
+  ask: string; // Best ask price
+  high: string; // 24h high
+  low: string; // 24h low
+  volume: string; // 24h volume
+  timestamp: string; // ISO8601
 }
 export type TickerResp = ApiEnvelope<Ticker>;
 export type AllTickersResp = ApiEnvelope<Ticker[]>;
@@ -370,8 +372,8 @@ export type AllTickersResp = ApiEnvelope<Ticker[]>;
 /** Order Book (Depth) */
 export interface OrderBook {
   symbol: string;
-  bids: Array<[string, string]>;  // [price, size]
-  asks: Array<[string, string]>;  // [price, size]
+  bids: Array<[string, string]>; // [price, size]
+  asks: Array<[string, string]>; // [price, size]
   timestamp: string;
 }
 export type OrderBookResp = ApiEnvelope<OrderBook>;
@@ -389,7 +391,7 @@ export type TradesResp = ApiEnvelope<Trade[]>;
 
 /** Candlestick (OHLCV) */
 export interface Candle {
-  openTime: number;      // Unix timestamp (ms)
+  openTime: number; // Unix timestamp (ms)
   open: string;
   high: string;
   low: string;
@@ -430,4 +432,3 @@ export interface PaginationOptions {
 export interface NormalizedPaginationParams {
   [key: string]: string | undefined;
 }
-

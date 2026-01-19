@@ -26,7 +26,7 @@ describe('verifyJwt', () => {
       const { verifyJwt } = await import('../service/lib/jwt.js');
 
       await expect(
-        verifyJwt(undefined, { jwksUrl: 'https://example.com/.well-known/jwks.json' })
+        verifyJwt(undefined, { jwksUrl: 'https://example.com/.well-known/jwks.json' }),
       ).rejects.toThrow('missing_bearer');
     });
 
@@ -34,7 +34,7 @@ describe('verifyJwt', () => {
       const { verifyJwt } = await import('../service/lib/jwt.js');
 
       await expect(
-        verifyJwt('', { jwksUrl: 'https://example.com/.well-known/jwks.json' })
+        verifyJwt('', { jwksUrl: 'https://example.com/.well-known/jwks.json' }),
       ).rejects.toThrow('missing_bearer');
     });
 
@@ -42,7 +42,7 @@ describe('verifyJwt', () => {
       const { verifyJwt } = await import('../service/lib/jwt.js');
 
       await expect(
-        verifyJwt('Basic abc123', { jwksUrl: 'https://example.com/.well-known/jwks.json' })
+        verifyJwt('Basic abc123', { jwksUrl: 'https://example.com/.well-known/jwks.json' }),
       ).rejects.toThrow('missing_bearer');
     });
 
@@ -50,7 +50,7 @@ describe('verifyJwt', () => {
       const { verifyJwt } = await import('../service/lib/jwt.js');
 
       await expect(
-        verifyJwt('bearer token123', { jwksUrl: 'https://example.com/.well-known/jwks.json' })
+        verifyJwt('bearer token123', { jwksUrl: 'https://example.com/.well-known/jwks.json' }),
       ).rejects.toThrow('missing_bearer');
     });
 
@@ -58,7 +58,7 @@ describe('verifyJwt', () => {
       const { verifyJwt } = await import('../service/lib/jwt.js');
 
       await expect(
-        verifyJwt('BEARER token123', { jwksUrl: 'https://example.com/.well-known/jwks.json' })
+        verifyJwt('BEARER token123', { jwksUrl: 'https://example.com/.well-known/jwks.json' }),
       ).rejects.toThrow('missing_bearer');
     });
   });
@@ -67,9 +67,9 @@ describe('verifyJwt', () => {
     it('should throw "missing_jwks" when jwksUrl is empty', async () => {
       const { verifyJwt } = await import('../service/lib/jwt.js');
 
-      await expect(
-        verifyJwt('Bearer valid-token', { jwksUrl: '' })
-      ).rejects.toThrow('missing_jwks');
+      await expect(verifyJwt('Bearer valid-token', { jwksUrl: '' })).rejects.toThrow(
+        'missing_jwks',
+      );
     });
 
     it('should throw "missing_jwks" when opts is undefined', async () => {
@@ -94,7 +94,7 @@ describe('verifyJwt', () => {
       expect(mockJwtVerify).toHaveBeenCalledWith(
         'valid-token',
         'mock-jwks',
-        expect.objectContaining({ issuer: 'test-issuer' })
+        expect.objectContaining({ issuer: 'test-issuer' }),
       );
     });
 
@@ -114,7 +114,7 @@ describe('verifyJwt', () => {
       expect(mockJwtVerify).toHaveBeenCalledWith(
         'valid-token',
         'mock-jwks',
-        expect.objectContaining({ audience: 'test-audience' })
+        expect.objectContaining({ audience: 'test-audience' }),
       );
     });
 
@@ -137,7 +137,7 @@ describe('verifyJwt', () => {
         expect.objectContaining({
           issuer: 'test-issuer',
           audience: 'test-audience',
-        })
+        }),
       );
     });
   });
@@ -176,7 +176,7 @@ describe('verifyJwt', () => {
       expect(mockJwtVerify).toHaveBeenCalledWith(
         'my-jwt-token-here',
         'mock-jwks',
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -188,7 +188,7 @@ describe('verifyJwt', () => {
       await expect(
         verifyJwt('Bearer expired-token', {
           jwksUrl: 'https://example.com/.well-known/jwks.json',
-        })
+        }),
       ).rejects.toThrow('Token expired');
     });
 
@@ -200,7 +200,7 @@ describe('verifyJwt', () => {
       await expect(
         verifyJwt('Bearer tampered-token', {
           jwksUrl: 'https://example.com/.well-known/jwks.json',
-        })
+        }),
       ).rejects.toThrow('Invalid signature');
     });
   });
@@ -216,7 +216,7 @@ describe('verifyJwt', () => {
       });
 
       expect(mockCreateRemoteJWKSet).toHaveBeenCalledWith(
-        new URL('https://auth.example.com/.well-known/jwks.json')
+        new URL('https://auth.example.com/.well-known/jwks.json'),
       );
     });
 

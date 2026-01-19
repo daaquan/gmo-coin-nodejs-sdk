@@ -7,7 +7,9 @@ import type { FxActiveOrder } from '../src/types.js';
 const apiKey = process.env.FX_API_KEY;
 const secret = process.env.FX_API_SECRET;
 if (!apiKey || !secret) {
-  console.error('Missing FX_API_KEY or FX_API_SECRET.\nSet them, e.g.:\n  FX_API_KEY=yourKey FX_API_SECRET=yourSecret npm run examples:rest');
+  console.error(
+    'Missing FX_API_KEY or FX_API_SECRET.\nSet them, e.g.:\n  FX_API_KEY=yourKey FX_API_SECRET=yourSecret npm run examples:rest',
+  );
   process.exit(1);
 }
 const fx = new FxPrivateRestClient(apiKey, secret);
@@ -54,7 +56,9 @@ const fx = new FxPrivateRestClient(apiKey, secret);
         console.log('Canceled:', canceled.data);
       }
     } else {
-      console.log('Order placement is skipped by default. Set PLACE_LIMIT=1 (and ORDER_LIMIT_PRICE) or PLACE_SPEED=1 to place and cancel an order.');
+      console.log(
+        'Order placement is skipped by default. Set PLACE_LIMIT=1 (and ORDER_LIMIT_PRICE) or PLACE_SPEED=1 to place and cancel an order.',
+      );
     }
 
     // 3) List active orders (robust to different shapes)

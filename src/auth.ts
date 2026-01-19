@@ -10,7 +10,7 @@ export function buildHeaders(
   secret: string,
   method: 'GET' | 'POST' | 'PUT' | 'DELETE',
   path: string, // e.g. '/v1/order'
-  body: string // '' for GET
+  body: string, // '' for GET
 ) {
   const ts = Date.now().toString();
   const text = ts + method + path + body;
@@ -22,4 +22,3 @@ export function buildHeaders(
     'Content-Type': 'application/json',
   } as Record<string, string>;
 }
-

@@ -10,4 +10,3 @@ export function registerMetricsRoute(app: FastifyInstance) {
     return reply.send(await register.metrics());
   });
 }
-

@@ -52,7 +52,7 @@ describe('Metrics Collector', () => {
       collector.recordRequest('GET', '/v1/assets', 500, 90, new Error('Error'));
 
       const endpoints = collector.getMetrics().endpoints;
-      const assetEndpoint = endpoints.find(e => e.path === '/v1/assets');
+      const assetEndpoint = endpoints.find((e) => e.path === '/v1/assets');
 
       expect(assetEndpoint).toBeDefined();
       expect(assetEndpoint?.method).toBe('GET');
@@ -67,7 +67,7 @@ describe('Metrics Collector', () => {
       collector.recordRequest('GET', '/v1/assets', 200, 75);
 
       const endpoints = collector.getMetrics().endpoints;
-      const assetEndpoint = endpoints.find(e => e.path === '/v1/assets');
+      const assetEndpoint = endpoints.find((e) => e.path === '/v1/assets');
 
       expect(assetEndpoint?.latency.min).toBe(50);
       expect(assetEndpoint?.latency.max).toBe(100);
@@ -83,7 +83,7 @@ describe('Metrics Collector', () => {
       const endpoints = collector.getMetrics().endpoints;
       expect(endpoints).toHaveLength(3);
 
-      const methods = new Set(endpoints.map(e => e.method));
+      const methods = new Set(endpoints.map((e) => e.method));
       expect(methods.has('GET')).toBe(true);
       expect(methods.has('POST')).toBe(true);
     });
@@ -114,9 +114,27 @@ describe('Metrics Collector', () => {
     });
 
     it('should categorize errors by error code', () => {
-      collector.recordRequest('GET', '/v1/assets', 400, 50, new Error('ERR-5003 rate limit exceeded'));
-      collector.recordRequest('POST', '/v1/order', 400, 100, new Error('ERR-201 insufficient funds'));
-      collector.recordRequest('GET', '/v1/assets', 400, 75, new Error('ERR-5003 rate limit exceeded'));
+      collector.recordRequest(
+        'GET',
+        '/v1/assets',
+        400,
+        50,
+        new Error('ERR-5003 rate limit exceeded'),
+      );
+      collector.recordRequest(
+        'POST',
+        '/v1/order',
+        400,
+        100,
+        new Error('ERR-201 insufficient funds'),
+      );
+      collector.recordRequest(
+        'GET',
+        '/v1/assets',
+        400,
+        75,
+        new Error('ERR-5003 rate limit exceeded'),
+      );
 
       const metrics = collector.getMetrics();
       expect(metrics.errors.byType['ERR-5003']).toBe(2);
@@ -247,7 +265,7 @@ describe('Metrics Collector', () => {
     it('should track uptime', async () => {
       const before = collector.getMetrics().uptime;
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       const after = collector.getMetrics().uptime;
 

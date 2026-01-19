@@ -54,7 +54,7 @@ describe('Audit Logger', () => {
       auditLogger.log('GET', '/path', 200, 10, {
         headers: {
           'X-API-Key': 'secret-key-12345',
-          'Authorization': 'Bearer token123',
+          Authorization: 'Bearer token123',
           'Content-Type': 'application/json',
         },
       });
@@ -132,9 +132,9 @@ describe('Audit Logger', () => {
 
       customLogger.log('GET', '/path', 200, 10, {
         headers: {
-          'custom_secret': 'should-be-masked',
-          'my_key': 'also-masked',
-          'other_header': 'not-masked',
+          custom_secret: 'should-be-masked',
+          my_key: 'also-masked',
+          other_header: 'not-masked',
         },
       });
 
@@ -264,7 +264,7 @@ describe('Audit Logger', () => {
           method: 'GET',
           path: '/path',
           statusCode: 200,
-        })
+        }),
       );
     });
 

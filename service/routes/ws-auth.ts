@@ -13,6 +13,6 @@ export function registerWsAuthRoutes(app: FastifyInstance) {
       const auth = new FxPrivateWsAuth(apiKey, secret);
       const res = await auth.create();
       return reply.send(res);
-    }
+    },
   );
 }

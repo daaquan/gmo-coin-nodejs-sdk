@@ -34,7 +34,7 @@ describe('Retry Mechanism', () => {
           maxRetries: 2,
           initialDelay: 1,
           maxDelay: 1,
-        })
+        }),
       ).rejects.toThrow('timeout');
 
       expect(fn).toHaveBeenCalledTimes(3); // initial + 2 retries
@@ -54,7 +54,7 @@ describe('Retry Mechanism', () => {
           shouldRetry,
           initialDelay: 1,
           maxDelay: 1,
-        })
+        }),
       ).rejects.toThrow('ERR-201');
 
       // First error retries (ERR-5003), second error does not retry
@@ -71,9 +71,7 @@ describe('Retry Mechanism', () => {
         return originalSetTimeout(callback, 0);
       }) as any;
 
-      const fn = vi
-        .fn()
-        .mockRejectedValue(new Error('timeout'));
+      const fn = vi.fn().mockRejectedValue(new Error('timeout'));
 
       try {
         await retryWithBackoff(fn, {

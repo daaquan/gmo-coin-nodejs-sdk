@@ -18,22 +18,37 @@ export class FxPrivateWsAuth {
   constructor(
     private apiKey: string,
     private secret: string,
-    private restBase = 'https://forex-api.coin.z.com/private'
+    private restBase = 'https://forex-api.coin.z.com/private',
   ) {
     if (!apiKey || !secret) {
-      throw new Error('FxPrivateWsAuth: Missing API credentials. Set FX_API_KEY and FX_API_SECRET.');
+      throw new Error(
+        'FxPrivateWsAuth: Missing API credentials. Set FX_API_KEY and FX_API_SECRET.',
+      );
     }
   }
 
-  private async call(method: 'POST' | 'PUT' | 'DELETE', path = '/v1/ws-auth', body?: { token?: string }) {
+  private async call(
+    method: 'POST' | 'PUT' | 'DELETE',
+    path = '/v1/ws-auth',
+    body?: { token?: string },
+  ) {
     const payload = body ? JSON.stringify(body) : JSON.stringify({});
     const headers = buildHeaders(this.apiKey, this.secret, method, path, payload);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), WS_TIMEOUT);
     try {
-      const res = await fetch(this.restBase + path, { method, headers, body: payload, signal: controller.signal });
+      const res = await fetch(this.restBase + path, {
+        method,
+        headers,
+        body: payload,
+        signal: controller.signal,
+      });
       let json: Record<string, unknown> | undefined;
-      try { json = await res.json(); } catch (e) { json = undefined; }
+      try {
+        json = await res.json();
+      } catch (e) {
+        json = undefined;
+      }
       if (!res.ok || json?.status !== 0) {
         const errorMsg = `${method} ${path} failed: ${res.status} ${JSON.stringify(json)}`;
         throw new Error(errorMsg);
@@ -44,9 +59,15 @@ export class FxPrivateWsAuth {
     }
   }
 
-  create() { return this.call('POST'); }
-  extend(token: string) { return this.call('PUT', '/v1/ws-auth', { token }); }
-  revoke(token: string) { return this.call('DELETE', '/v1/ws-auth', { token }); }
+  create() {
+    return this.call('POST');
+  }
+  extend(token: string) {
+    return this.call('PUT', '/v1/ws-auth', { token });
+  }
+  revoke(token: string) {
+    return this.call('DELETE', '/v1/ws-auth', { token });
+  }
 }
 
 export class FxPrivateWsClient {
@@ -55,11 +76,13 @@ export class FxPrivateWsClient {
   private closed = false;
 
   constructor(private token: string) {
-    if (!token) throw new Error('FxPrivateWsClient: token is required. Obtain via FxPrivateWsAuth.create().');
+    if (!token)
+      throw new Error('FxPrivateWsClient: token is required. Obtain via FxPrivateWsAuth.create().');
   }
 
   async connect() {
-    if (this.closed) throw new Error('FxPrivateWsClient: Connection already closed, cannot reconnect.');
+    if (this.closed)
+      throw new Error('FxPrivateWsClient: Connection already closed, cannot reconnect.');
     if (this.ws) throw new Error('FxPrivateWsClient: Already connected.');
 
     this.ws = new WebSocket(`${WS_BASE}/${this.token}`);
@@ -133,17 +156,26 @@ export class FxPrivateWsClient {
       throw new Error('FxPrivateWsClient: Not connected.');
     }
     await wsGate.wait();
-    const payload: { command: string; channel: string; symbol?: string } = { command: 'subscribe', channel: topic };
+    const payload: { command: string; channel: string; symbol?: string } = {
+      command: 'subscribe',
+      channel: topic,
+    };
     if (symbol) payload.symbol = symbol;
     this.ws.send(JSON.stringify(payload));
   }
 
-  async unsubscribe(topic: 'execution' | 'order' | 'position' | 'positionSummary', symbol?: string) {
+  async unsubscribe(
+    topic: 'execution' | 'order' | 'position' | 'positionSummary',
+    symbol?: string,
+  ) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       throw new Error('FxPrivateWsClient: Not connected.');
     }
     await wsGate.wait();
-    const payload: { command: string; channel: string; symbol?: string } = { command: 'unsubscribe', channel: topic };
+    const payload: { command: string; channel: string; symbol?: string } = {
+      command: 'unsubscribe',
+      channel: topic,
+    };
     if (symbol) payload.symbol = symbol;
     this.ws.send(JSON.stringify(payload));
   }
@@ -165,18 +197,17 @@ export class FxPrivateWsClient {
 
 // Crypto variant (similar structure)
 export class CryptoPrivateWsAuth extends FxPrivateWsAuth {
-  constructor(
-    apiKey: string,
-    secret: string,
-    restBase = 'https://api.coin.z.com/private'
-  ) {
+  constructor(apiKey: string, secret: string, restBase = 'https://api.coin.z.com/private') {
     super(apiKey, secret, restBase);
   }
 }
 
 export class CryptoPrivateWsClient extends FxPrivateWsClient {
   // Crypto uses same WebSocket protocol as FX
-  constructor(token: string, private cryptoWsBase = 'wss://api.coin.z.com/ws/private/v1') {
+  constructor(
+    token: string,
+    private cryptoWsBase = 'wss://api.coin.z.com/ws/private/v1',
+  ) {
     super(token);
   }
 }

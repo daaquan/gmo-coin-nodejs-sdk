@@ -19,19 +19,36 @@ const CRYPTO_BASE = 'https://api.coin.z.com/private';
 const V = '/v1';
 const FETCH_TIMEOUT = 30_000; // 30秒
 
-function ensureExecFields(execType: T.ExecType, body: { limitPrice?: string; stopPrice?: string; oco?: { limitPrice: string; stopPrice: string } }) {
+function ensureExecFields(
+  execType: T.ExecType,
+  body: {
+    limitPrice?: string;
+    stopPrice?: string;
+    oco?: { limitPrice: string; stopPrice: string };
+  },
+) {
   if (execType === 'LIMIT' && !body.limitPrice) throw new Error('LIMIT requires limitPrice');
   if (execType === 'STOP' && !body.stopPrice) throw new Error('STOP requires stopPrice');
-  if (execType === 'OCO' && (!body.oco?.limitPrice || !body.oco?.stopPrice)) throw new Error('OCO requires oco.limitPrice and oco.stopPrice');
+  if (execType === 'OCO' && (!body.oco?.limitPrice || !body.oco?.stopPrice))
+    throw new Error('OCO requires oco.limitPrice and oco.stopPrice');
 }
 
 async function parseJson(res: Response) {
   let json: Record<string, unknown> | undefined;
-  try { json = await res.json(); } catch { json = undefined; }
+  try {
+    json = await res.json();
+  } catch {
+    json = undefined;
+  }
   return json;
 }
 
-function errText(method: string, path: string, res: Response, json: Record<string, unknown> | undefined) {
+function errText(
+  method: string,
+  path: string,
+  res: Response,
+  json: Record<string, unknown> | undefined,
+) {
   const statusLine = `${res.status} ${res.statusText}`;
   const err = json as ErrorResponse | undefined;
   const code = err?.data?.code || err?.code || err?.status;
@@ -91,13 +108,20 @@ function normalizeCryptoPagination(opts?: T.PaginationOptions): Record<string, s
  * Handles common HTTP operations with rate limiting and error handling
  */
 abstract class BaseRestClient {
-  constructor(protected apiKey: string, protected secret: string, protected baseUrl: string) {
+  constructor(
+    protected apiKey: string,
+    protected secret: string,
+    protected baseUrl: string,
+  ) {
     if (!apiKey || !secret) {
       throw new Error(`${this.constructor.name}: Missing API credentials.`);
     }
   }
 
-  protected async _get<TResp>(path: string, qs?: Record<string, string | undefined>): Promise<TResp> {
+  protected async _get<TResp>(
+    path: string,
+    qs?: Record<string, string | undefined>,
+  ): Promise<TResp> {
     await getGate.wait();
     const url = new URL(this.baseUrl + path);
     if (qs) for (const [k, v] of Object.entries(qs)) if (v != null) url.searchParams.set(k, v);
@@ -115,7 +139,13 @@ abstract class BaseRestClient {
       const errorMsg = isError ? errText('GET', path, res, json) : undefined;
 
       // Record metrics
-      metricsCollector.recordRequest('GET', path, res.status, duration, isError ? errorMsg : undefined);
+      metricsCollector.recordRequest(
+        'GET',
+        path,
+        res.status,
+        duration,
+        isError ? errorMsg : undefined,
+      );
 
       // Record audit log
       auditLogger.log('GET', path, res.status, duration, {
@@ -130,7 +160,13 @@ abstract class BaseRestClient {
       const duration = Date.now() - startTime;
 
       // Record metrics for caught errors
-      metricsCollector.recordRequest('GET', path, 0, duration, e instanceof Error ? e.message : String(e));
+      metricsCollector.recordRequest(
+        'GET',
+        path,
+        0,
+        duration,
+        e instanceof Error ? e.message : String(e),
+      );
 
       auditLogger.log('GET', path, 0, duration, {
         error: e instanceof Error ? e.message : String(e),
@@ -150,7 +186,12 @@ abstract class BaseRestClient {
     const startTime = Date.now();
 
     try {
-      const res = await fetch(this.baseUrl + path, { method: 'POST', headers, body: payload, signal: controller.signal });
+      const res = await fetch(this.baseUrl + path, {
+        method: 'POST',
+        headers,
+        body: payload,
+        signal: controller.signal,
+      });
       const json = await parseJson(res);
 
       const duration = Date.now() - startTime;
@@ -158,7 +199,13 @@ abstract class BaseRestClient {
       const errorMsg = isError ? errText('POST', path, res, json) : undefined;
 
       // Record metrics
-      metricsCollector.recordRequest('POST', path, res.status, duration, isError ? errorMsg : undefined);
+      metricsCollector.recordRequest(
+        'POST',
+        path,
+        res.status,
+        duration,
+        isError ? errorMsg : undefined,
+      );
 
       // Record audit log
       auditLogger.log('POST', path, res.status, duration, {
@@ -173,7 +220,13 @@ abstract class BaseRestClient {
       const duration = Date.now() - startTime;
 
       // Record metrics for caught errors
-      metricsCollector.recordRequest('POST', path, 0, duration, e instanceof Error ? e.message : String(e));
+      metricsCollector.recordRequest(
+        'POST',
+        path,
+        0,
+        duration,
+        e instanceof Error ? e.message : String(e),
+      );
 
       auditLogger.log('POST', path, 0, duration, {
         requestBody: body,
@@ -189,7 +242,9 @@ abstract class BaseRestClient {
 export class FxPrivateRestClient extends BaseRestClient {
   constructor(apiKey: string, secret: string, baseUrl = FOREX_BASE) {
     if (!apiKey || !secret) {
-      throw new Error('FxPrivateRestClient: Missing API credentials. Set FX_API_KEY and FX_API_SECRET.');
+      throw new Error(
+        'FxPrivateRestClient: Missing API credentials. Set FX_API_KEY and FX_API_SECRET.',
+      );
     }
     super(apiKey, secret, baseUrl);
   }
@@ -239,20 +294,33 @@ export class FxPrivateRestClient extends BaseRestClient {
   }
   placeOrder(body: T.FxOrderReq) {
     ensureExecFields(body.executionType, body);
-    if (body.executionType === 'LIMIT' && !body.limitPrice) throw new Error('LIMIT order requires limitPrice');
-    if (body.executionType === 'STOP' && !body.stopPrice) throw new Error('STOP order requires stopPrice');
-    if (body.executionType === 'OCO' && (!body.oco?.limitPrice || !body.oco?.stopPrice)) throw new Error('OCO order requires oco.limitPrice and oco.stopPrice');
+    if (body.executionType === 'LIMIT' && !body.limitPrice)
+      throw new Error('LIMIT order requires limitPrice');
+    if (body.executionType === 'STOP' && !body.stopPrice)
+      throw new Error('STOP order requires stopPrice');
+    if (body.executionType === 'OCO' && (!body.oco?.limitPrice || !body.oco?.stopPrice))
+      throw new Error('OCO order requires oco.limitPrice and oco.stopPrice');
     return this._post<T.FxOrderResp>(`${V}/order`, body);
   }
   placeIfdOrder(body: T.FxIfdOrderReq) {
-    ensureExecFields(body.firstExecutionType, { limitPrice: body.firstPrice, stopPrice: body.firstStopPrice });
-    ensureExecFields(body.secondExecutionType, { limitPrice: body.secondPrice, stopPrice: body.secondStopPrice });
+    ensureExecFields(body.firstExecutionType, {
+      limitPrice: body.firstPrice,
+      stopPrice: body.firstStopPrice,
+    });
+    ensureExecFields(body.secondExecutionType, {
+      limitPrice: body.secondPrice,
+      stopPrice: body.secondStopPrice,
+    });
     return this._post<T.FxIfdOrderResp>(`${V}/ifdOrder`, body);
   }
   placeIfdocoOrder(body: T.FxIfdocoOrderReq) {
-    ensureExecFields(body.firstExecutionType, { limitPrice: body.firstPrice, stopPrice: body.firstStopPrice });
+    ensureExecFields(body.firstExecutionType, {
+      limitPrice: body.firstPrice,
+      stopPrice: body.firstStopPrice,
+    });
     // OCO requires two prices (limit + stop)
-    if (!body.secondLimitPrice || !body.secondStopPrice) throw new Error('IFDOCO requires secondLimitPrice and secondStopPrice');
+    if (!body.secondLimitPrice || !body.secondStopPrice)
+      throw new Error('IFDOCO requires secondLimitPrice and secondStopPrice');
     return this._post<T.FxIfdocoOrderResp>(`${V}/ifoOrder`, body);
   }
   changeOrder(body: T.FxChangeOrderReq) {
@@ -271,8 +339,12 @@ export class FxPrivateRestClient extends BaseRestClient {
     return this._post<T.FxCancelBulkResp>(`${V}/cancelBulkOrder`, body);
   }
   closeOrder(body: T.FxCloseOrderReq) {
-    if (!body.settlePosition?.length) throw new Error('closeOrder requires at least one settlePosition');
-    ensureExecFields(body.executionType, { limitPrice: body.limitPrice, stopPrice: body.stopPrice });
+    if (!body.settlePosition?.length)
+      throw new Error('closeOrder requires at least one settlePosition');
+    ensureExecFields(body.executionType, {
+      limitPrice: body.limitPrice,
+      stopPrice: body.stopPrice,
+    });
     return this._post<T.FxCloseOrderResp>(`${V}/closeOrder`, body);
   }
 }
@@ -284,7 +356,9 @@ export class FxPrivateRestClient extends BaseRestClient {
 export class CryptoPrivateRestClient extends BaseRestClient {
   constructor(apiKey: string, secret: string, baseUrl = CRYPTO_BASE) {
     if (!apiKey || !secret) {
-      throw new Error('CryptoPrivateRestClient: Missing API credentials. Set CRYPTO_API_KEY and CRYPTO_API_SECRET.');
+      throw new Error(
+        'CryptoPrivateRestClient: Missing API credentials. Set CRYPTO_API_KEY and CRYPTO_API_SECRET.',
+      );
     }
     super(apiKey, secret, baseUrl);
   }
@@ -295,7 +369,11 @@ export class CryptoPrivateRestClient extends BaseRestClient {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
     try {
-      const res = await fetch(this.baseUrl + path, { method: 'DELETE', headers, signal: controller.signal });
+      const res = await fetch(this.baseUrl + path, {
+        method: 'DELETE',
+        headers,
+        signal: controller.signal,
+      });
       const json = await parseJson(res);
       if (!res.ok || json?.status !== 0) throw new Error(errText('DELETE', path, res, json));
       return json as TResp;
@@ -434,7 +512,6 @@ export class CryptoPrivateRestClient extends BaseRestClient {
   cancelOrder(orderId: string) {
     return this._delete<T.CryptoCancelOrderResp>(`/v1/orders/${orderId}`);
   }
-
 
   changeOrder(body: T.CryptoChangeOrderReq) {
     return this._post<T.CryptoChangeOrderResp>('/v1/changeOrder', body);

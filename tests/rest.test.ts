@@ -24,13 +24,13 @@ describe('FxPrivateRestClient', () => {
   describe('constructor', () => {
     it('should throw error if API key is missing', () => {
       expect(() => new FxPrivateRestClient('', mockSecret)).toThrow(
-        'FxPrivateRestClient: Missing API credentials. Set FX_API_KEY and FX_API_SECRET.'
+        'FxPrivateRestClient: Missing API credentials. Set FX_API_KEY and FX_API_SECRET.',
       );
     });
 
     it('should throw error if secret is missing', () => {
       expect(() => new FxPrivateRestClient(mockApiKey, '')).toThrow(
-        'FxPrivateRestClient: Missing API credentials. Set FX_API_KEY and FX_API_SECRET.'
+        'FxPrivateRestClient: Missing API credentials. Set FX_API_KEY and FX_API_SECRET.',
       );
     });
 
@@ -190,7 +190,9 @@ describe('FxPrivateRestClient', () => {
         oco: { stopPrice: '129.00' },
       };
 
-      expect(() => client.placeOrder(orderReq)).toThrow('OCO requires oco.limitPrice and oco.stopPrice');
+      expect(() => client.placeOrder(orderReq)).toThrow(
+        'OCO requires oco.limitPrice and oco.stopPrice',
+      );
     });
 
     it('should throw error for OCO order without oco.stopPrice', async () => {
@@ -202,7 +204,9 @@ describe('FxPrivateRestClient', () => {
         oco: { limitPrice: '131.00' },
       };
 
-      expect(() => client.placeOrder(orderReq)).toThrow('OCO requires oco.limitPrice and oco.stopPrice');
+      expect(() => client.placeOrder(orderReq)).toThrow(
+        'OCO requires oco.limitPrice and oco.stopPrice',
+      );
     });
   });
 
@@ -234,7 +238,9 @@ describe('FxPrivateRestClient', () => {
         settlePosition: [],
       };
 
-      expect(() => client.closeOrder(orderReq)).toThrow('closeOrder requires at least one settlePosition');
+      expect(() => client.closeOrder(orderReq)).toThrow(
+        'closeOrder requires at least one settlePosition',
+      );
     });
   });
 
@@ -350,7 +356,9 @@ describe('FxPrivateRestClient', () => {
         secondSize: '10000',
       };
 
-      expect(() => client.placeIfdocoOrder(ifdocoOrderReq)).toThrow('IFDOCO requires secondLimitPrice and secondStopPrice');
+      expect(() => client.placeIfdocoOrder(ifdocoOrderReq)).toThrow(
+        'IFDOCO requires secondLimitPrice and secondStopPrice',
+      );
     });
   });
 });

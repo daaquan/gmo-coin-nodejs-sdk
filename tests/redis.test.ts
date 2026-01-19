@@ -64,7 +64,7 @@ describe('Redis module', () => {
         'redis://localhost:6379',
         expect.objectContaining({
           lazyConnect: true,
-        })
+        }),
       );
     });
 
@@ -79,7 +79,7 @@ describe('Redis module', () => {
         'redis://localhost:6379',
         expect.objectContaining({
           maxRetriesPerRequest: 2,
-        })
+        }),
       );
     });
   });

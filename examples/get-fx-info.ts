@@ -23,7 +23,6 @@ const fx = new FxPrivateRestClient(apiKey, secret);
     console.log('\n=== FX 注文一覧 ===');
     const orders = await fx.getActiveOrders({ symbol: 'USD_JPY', count: '100' });
     console.log(JSON.stringify(orders, null, 2));
-
   } catch (e) {
     console.error('Error:', e);
   }

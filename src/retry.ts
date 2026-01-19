@@ -4,11 +4,11 @@
  */
 
 export interface RetryOptions {
-  maxRetries?: number;           // Default: 3
-  initialDelay?: number;         // Default: 100ms
-  maxDelay?: number;             // Default: 10000ms
-  backoffMultiplier?: number;    // Default: 2
-  jitterFactor?: number;         // Default: 0.1 (10%)
+  maxRetries?: number; // Default: 3
+  initialDelay?: number; // Default: 100ms
+  maxDelay?: number; // Default: 10000ms
+  backoffMultiplier?: number; // Default: 2
+  jitterFactor?: number; // Default: 0.1 (10%)
   shouldRetry?: (error: Error, attempt: number) => boolean;
 }
 
@@ -60,12 +60,9 @@ function calculateDelay(
   initialDelay: number,
   maxDelay: number,
   backoffMultiplier: number,
-  jitterFactor: number
+  jitterFactor: number,
 ): number {
-  const exponentialDelay = Math.min(
-    initialDelay * Math.pow(backoffMultiplier, attempt),
-    maxDelay
-  );
+  const exponentialDelay = Math.min(initialDelay * Math.pow(backoffMultiplier, attempt), maxDelay);
 
   // Add jitter: ±jitterFactor * exponentialDelay
   const jitter = (Math.random() - 0.5) * 2 * jitterFactor * exponentialDelay;
@@ -97,7 +94,7 @@ function sleep(ms: number): Promise<void> {
  */
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
-  options: RetryOptions = {}
+  options: RetryOptions = {},
 ): Promise<T> {
   const {
     maxRetries = 3,
@@ -124,7 +121,13 @@ export async function retryWithBackoff<T>(
       }
 
       // Calculate delay and wait
-      const delay = calculateDelay(attempt, initialDelay, maxDelay, backoffMultiplier, jitterFactor);
+      const delay = calculateDelay(
+        attempt,
+        initialDelay,
+        maxDelay,
+        backoffMultiplier,
+        jitterFactor,
+      );
       await sleep(delay);
       attempt++;
     }
@@ -147,10 +150,10 @@ export class CircuitBreaker<T> {
   constructor(
     private fn: () => Promise<T>,
     private options = {
-      failureThreshold: 5,        // Open circuit after 5 failures
-      successThreshold: 2,        // Close circuit after 2 successes
-      timeout: 60_000,            // Try to recover after 60s
-    }
+      failureThreshold: 5, // Open circuit after 5 failures
+      successThreshold: 2, // Close circuit after 2 successes
+      timeout: 60_000, // Try to recover after 60s
+    },
   ) {}
 
   async execute(): Promise<T> {
@@ -213,7 +216,7 @@ export class CircuitBreaker<T> {
  */
 export async function retryWithCircuitBreaker<T>(
   breaker: CircuitBreaker<T>,
-  retryOptions: RetryOptions = {}
+  retryOptions: RetryOptions = {},
 ): Promise<T> {
   return retryWithBackoff(() => breaker.execute(), retryOptions);
 }

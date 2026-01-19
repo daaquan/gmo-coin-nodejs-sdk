@@ -39,7 +39,6 @@ const crypto = new CryptoPrivateRestClient(apiKey, secret);
     } catch (e: any) {
       console.error('注文一覧取得エラー:', e.message);
     }
-
   } catch (e) {
     console.error('Error:', e);
   }

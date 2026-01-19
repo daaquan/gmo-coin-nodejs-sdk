@@ -452,7 +452,7 @@ describe('CryptoPrivateRestClient Integration Tests', () => {
           side: 'BUY' as const,
           executionType: 'MARKET' as const,
           size: '0.1',
-        })
+        }),
       ).resolves.toBeDefined();
     });
 
@@ -476,7 +476,7 @@ describe('CryptoPrivateRestClient Integration Tests', () => {
           executionType: 'LIMIT' as const,
           size: '0.1',
           price: '44000.00',
-        })
+        }),
       ).resolves.toBeDefined();
 
       // Missing price should throw synchronously
@@ -510,7 +510,7 @@ describe('CryptoPrivateRestClient Integration Tests', () => {
           executionType: 'STOP' as const,
           size: '0.1',
           losscutPrice: '42000.00',
-        })
+        }),
       ).resolves.toBeDefined();
 
       // Missing losscutPrice should throw synchronously

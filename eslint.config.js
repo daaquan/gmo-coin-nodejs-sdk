@@ -2,6 +2,7 @@ import js from '@eslint/js';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
 import globals from 'globals';
+import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default [
   js.configs.recommended,
@@ -26,7 +27,7 @@ export default [
       // 基本的なルール
       'no-console': 'warn',
       'no-unused-vars': 'off', // TypeScriptでチェックされるため
-      // 先頭がアンダースコアの引数は無視（Fastifyのハンドラ等で未使用の引数があるため）
+      // 先頭がアンダースコアの引数は無視（Fastifyのハンドラ等で未使用의引数があるため）
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
@@ -46,4 +47,5 @@ export default [
       'no-console': 'off',
     },
   },
+  eslintConfigPrettier,
 ];

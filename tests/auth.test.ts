@@ -23,10 +23,7 @@ describe('buildHeaders', () => {
 
     // Expected signature calculation
     const text = `${mockTimestamp}${method}${path}${body}`;
-    const expectedSign = crypto
-      .createHmac('sha256', secret)
-      .update(text)
-      .digest('hex');
+    const expectedSign = crypto.createHmac('sha256', secret).update(text).digest('hex');
 
     expect(headers).toEqual({
       'API-KEY': apiKey,
@@ -50,10 +47,7 @@ describe('buildHeaders', () => {
     const headers = buildHeaders(apiKey, secret, method, path, body);
 
     const text = `${mockTimestamp}${method}${path}${body}`;
-    const expectedSign = crypto
-      .createHmac('sha256', secret)
-      .update(text)
-      .digest('hex');
+    const expectedSign = crypto.createHmac('sha256', secret).update(text).digest('hex');
 
     expect(headers).toEqual({
       'API-KEY': apiKey,

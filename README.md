@@ -5,6 +5,7 @@ A typed, production-ready Node.js/TypeScript SDK for GMO Coin's Forex (FX) and C
 ## Features
 
 ### Core Capabilities
+
 - **REST & WebSocket APIs** - Both Forex and Cryptocurrency private and public APIs
 - **Multiple Client Types** - Separate clients for FX and Crypto with auto-detection
 - **Forex (FX)** - 18 supported currency pairs (USD/JPY, EUR/JPY, etc.)
@@ -12,6 +13,7 @@ A typed, production-ready Node.js/TypeScript SDK for GMO Coin's Forex (FX) and C
 - **Advanced Order Types** - LIMIT, MARKET, STOP, OCO, IFD, IFDOCO orders
 
 ### Production-Ready Features
+
 - **Rate Limiting** - Automatic management (6 GET/s, 1 POST/s, 1 WS/s)
 - **Request Caching** - TTL-based in-memory cache for public APIs
 - **Retry & Circuit Breaker** - Exponential backoff and failure prevention
@@ -21,6 +23,7 @@ A typed, production-ready Node.js/TypeScript SDK for GMO Coin's Forex (FX) and C
 - **Error Handling** - Detailed error categorization and recovery strategies
 
 ### Enterprise Features
+
 - **Microservice** - Fastify-based REST wrapper with rate limiting, idempotency, and multi-tenancy
 - **Redis Support** - Optional distributed caching and rate limiting
 - **Multi-Tenant** - Support for multiple credential sets
@@ -57,7 +60,7 @@ const order = await fx.placeOrder({
   side: 'BUY',
   size: '10000',
   executionType: 'LIMIT',
-  limitPrice: '130'
+  limitPrice: '130',
 });
 
 // Cancel orders
@@ -70,23 +73,23 @@ if (order.data[0]) {
 
 ### REST Clients
 
-| Client | API | Purpose |
-|--------|-----|---------|
-| `FxPrivateRestClient` | Forex Private | Trading, order management, positions |
-| `FxPublicRestClient` | Forex Public | Market data, tickers, orderbook |
+| Client                    | API            | Purpose                              |
+| ------------------------- | -------------- | ------------------------------------ |
+| `FxPrivateRestClient`     | Forex Private  | Trading, order management, positions |
+| `FxPublicRestClient`      | Forex Public   | Market data, tickers, orderbook      |
 | `CryptoPrivateRestClient` | Crypto Private | Trading, order management, positions |
-| `CryptoPublicRestClient` | Crypto Public | Market data, tickers, orderbook |
+| `CryptoPublicRestClient`  | Crypto Public  | Market data, tickers, orderbook      |
 
 ### WebSocket Clients
 
-| Client | API | Purpose |
-|--------|-----|---------|
-| `FxPrivateWsClient` | Forex Private | Real-time execution, order, position updates |
-| `FxPrivateWsAuth` | Forex Auth | WebSocket token creation and revocation |
-| `CryptoPrivateWsClient` | Crypto Private | Real-time crypto updates |
-| `CryptoPrivateWsAuth` | Crypto Auth | WebSocket token management |
-| `FxPublicWsClient` | Forex Public | Real-time ticker data (no auth required) |
-| `CryptoPublicWsClient` | Crypto Public | Real-time ticker data (no auth required) |
+| Client                  | API            | Purpose                                      |
+| ----------------------- | -------------- | -------------------------------------------- |
+| `FxPrivateWsClient`     | Forex Private  | Real-time execution, order, position updates |
+| `FxPrivateWsAuth`       | Forex Auth     | WebSocket token creation and revocation      |
+| `CryptoPrivateWsClient` | Crypto Private | Real-time crypto updates                     |
+| `CryptoPrivateWsAuth`   | Crypto Auth    | WebSocket token management                   |
+| `FxPublicWsClient`      | Forex Public   | Real-time ticker data (no auth required)     |
+| `CryptoPublicWsClient`  | Crypto Public  | Real-time ticker data (no auth required)     |
 
 ## Documentation
 
@@ -97,12 +100,14 @@ if (order.data[0]) {
 ## Examples
 
 The SDK includes comprehensive examples demonstrating:
+
 - REST API operations for FX and Crypto
 - WebSocket streaming and real-time updates
 - Error handling and retry patterns
 - Order placement and cancellation
 
 Run examples:
+
 ```bash
 npm run examples:rest
 npm run examples:ws
@@ -111,44 +116,48 @@ npm run examples:ws
 ## Key API Methods
 
 ### FxPrivateRestClient
+
 ```typescript
-getAssets()
-getActiveOrders(options)
-getOpenPositions(options)
-getLatestExecutions(options)
-placeOrder(order)
-speedOrder(order)
-cancelOrders(ids)
+getAssets();
+getActiveOrders(options);
+getOpenPositions(options);
+getLatestExecutions(options);
+placeOrder(order);
+speedOrder(order);
+cancelOrders(ids);
 ```
 
 ### CryptoPrivateRestClient
+
 ```typescript
-getAssets()
-getActiveOrders(options)
-getOpenPositions(options)
-placeOrder(order)
-placeOcoOrder(order)
-cancelOrder(orderId)
-cancelOrders(ids)
+getAssets();
+getActiveOrders(options);
+getOpenPositions(options);
+placeOrder(order);
+placeOcoOrder(order);
+cancelOrder(orderId);
+cancelOrders(ids);
 ```
 
 ### WebSocket
 
 **Private WebSocket (requires authentication):**
+
 ```typescript
 const auth = new FxPrivateWsAuth(apiKey, secret);
 const token = (await auth.create()).data.token;
 const ws = new FxPrivateWsClient(token);
 await ws.connect();
-ws.onMessage(msg => console.log(msg));
+ws.onMessage((msg) => console.log(msg));
 await ws.subscribe('execution');
 ```
 
 **Public WebSocket (no authentication):**
+
 ```typescript
 const ws = new FxPublicWsClient();
 await ws.connect();
-ws.onMessage(msg => console.log(msg));
+ws.onMessage((msg) => console.log(msg));
 await ws.subscribe('USD_JPY');
 ```
 

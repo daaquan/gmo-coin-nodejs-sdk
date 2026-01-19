@@ -48,7 +48,12 @@ export function registerStreamRoutes(app: FastifyInstance) {
     const tenant = tenantFromReq(req.headers, req.query);
     console.log('Stream: tenant =', tenant);
     const { apiKey, secret } = getCreds(tenant);
-    console.log('Stream: apiKey =', apiKey ? '***' : 'undefined', 'secret =', secret ? '***' : 'undefined');
+    console.log(
+      'Stream: apiKey =',
+      apiKey ? '***' : 'undefined',
+      'secret =',
+      secret ? '***' : 'undefined',
+    );
     const auth = new FxPrivateWsAuth(apiKey, secret);
     let closed = false;
     let extendTimer: ReturnType<typeof setTimeout> | undefined;
@@ -82,7 +87,10 @@ export function registerStreamRoutes(app: FastifyInstance) {
               const extendResp = await auth.extend(token);
               token = extendResp.data; // Update token with new one
               send('event', { type: 'token_extended', expireAt: decodeJwtExpiry(token) });
-              req.server.log.info({ newExpireAt: decodeJwtExpiry(token) }, 'WebSocket token extended successfully');
+              req.server.log.info(
+                { newExpireAt: decodeJwtExpiry(token) },
+                'WebSocket token extended successfully',
+              );
 
               // Reschedule next extension
               const newExpireAt = decodeJwtExpiry(token);
@@ -92,7 +100,10 @@ export function registerStreamRoutes(app: FastifyInstance) {
               }
             } catch (e) {
               req.server.log.error(e, 'WebSocket token extension failed');
-              send('error', { error: 'extend_failed', detail: e instanceof Error ? e.message : String(e) });
+              send('error', {
+                error: 'extend_failed',
+                detail: e instanceof Error ? e.message : String(e),
+              });
             }
           }, nextDelay);
         };
@@ -105,7 +116,9 @@ export function registerStreamRoutes(app: FastifyInstance) {
 
       // Subscribe to topics via query, default to execution+order
       const q = req.query;
-      const topics: string[] = (q?.topics ? String(q.topics).split(',') : ['execution', 'order']).map((s) => s.trim());
+      const topics: string[] = (
+        q?.topics ? String(q.topics).split(',') : ['execution', 'order']
+      ).map((s) => s.trim());
       const symbol = q?.symbol ? String(q.symbol) : undefined;
       for (const t of topics) await ws.subscribe(t as Topic, symbol);
 
@@ -136,7 +149,11 @@ export function registerStreamRoutes(app: FastifyInstance) {
         closed = true;
         if (extendTimer) clearTimeout(extendTimer);
         await ws.close();
-        try { await auth.revoke(token); } catch { /* ignore */ }
+        try {
+          await auth.revoke(token);
+        } catch {
+          /* ignore */
+        }
       });
     } catch (e: unknown) {
       console.error('Stream: error occurred:', e);
@@ -144,6 +161,6 @@ export function registerStreamRoutes(app: FastifyInstance) {
       reply.raw.end();
     }
 
-    return reply.sent = true;
+    return (reply.sent = true);
   });
 }

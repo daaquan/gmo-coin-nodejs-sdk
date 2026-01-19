@@ -84,7 +84,7 @@ function maskValue(value: unknown, patterns: RegExp[] = DEFAULT_PII_PATTERNS): u
 
   if (typeof value === 'object' && value !== null) {
     if (Array.isArray(value)) {
-      return value.map(item => maskValue(item, patterns));
+      return value.map((item) => maskValue(item, patterns));
     }
     const masked: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(value)) {
@@ -110,7 +110,7 @@ function maskValue(value: unknown, patterns: RegExp[] = DEFAULT_PII_PATTERNS): u
  */
 function maskHeaders(
   headers: Record<string, string | undefined>,
-  patterns: RegExp[] = DEFAULT_PII_PATTERNS
+  patterns: RegExp[] = DEFAULT_PII_PATTERNS,
 ): Record<string, string> {
   const masked: Record<string, string> = {};
 
@@ -118,7 +118,7 @@ function maskHeaders(
     if (!value) continue;
 
     // Check if key matches any PII pattern
-    const shouldMask = patterns.some(pattern => pattern.test(key));
+    const shouldMask = patterns.some((pattern) => pattern.test(key));
 
     if (shouldMask) {
       masked[key] = '***MASKED***';
@@ -155,7 +155,7 @@ export class AuditLogger {
     path: string,
     headers?: Record<string, string | undefined>,
     body?: unknown,
-    userId?: string
+    userId?: string,
   ): { startTime: number; method: string; path: string } {
     const startTime = Date.now();
 
@@ -190,7 +190,7 @@ export class AuditLogger {
     startTime: number,
     statusCode: number,
     responseData?: unknown,
-    error?: Error | string
+    error?: Error | string,
   ): void {
     const duration = Date.now() - startTime;
 
@@ -207,9 +207,12 @@ export class AuditLogger {
     }
 
     if (error) {
-      logEntry.error = error instanceof Error
-        ? this.config.includeStackTrace ? error.stack : error.message
-        : String(error);
+      logEntry.error =
+        error instanceof Error
+          ? this.config.includeStackTrace
+            ? error.stack
+            : error.message
+          : String(error);
     }
 
     this.config.logger(logEntry);
@@ -229,7 +232,7 @@ export class AuditLogger {
       responseData?: unknown;
       error?: Error | string;
       userId?: string;
-    }
+    },
   ): void {
     const logEntry: AuditLogEntry = {
       timestamp: new Date().toISOString(),
@@ -254,9 +257,12 @@ export class AuditLogger {
     }
 
     if (options?.error) {
-      logEntry.error = options.error instanceof Error
-        ? this.config.includeStackTrace ? options.error.stack : options.error.message
-        : String(options.error);
+      logEntry.error =
+        options.error instanceof Error
+          ? this.config.includeStackTrace
+            ? options.error.stack
+            : options.error.message
+          : String(options.error);
     }
 
     this.config.logger(logEntry);
@@ -272,8 +278,10 @@ export const auditLogger = new AuditLogger({
   logResponseData: false, // Disabled by default for privacy
   logger: (entry) => {
     const level = entry.error ? 'error' : entry.statusCode >= 400 ? 'warn' : 'info';
-    console.log(`[AUDIT:${level.toUpperCase()}] ${entry.method} ${entry.path} - ${entry.statusCode} (${entry.duration}ms)`);
-  }
+    console.log(
+      `[AUDIT:${level.toUpperCase()}] ${entry.method} ${entry.path} - ${entry.statusCode} (${entry.duration}ms)`,
+    );
+  },
 });
 
 /**

@@ -194,7 +194,7 @@ describe('Idempotency Cache', () => {
           'idem:redis-key',
           expect.any(String),
           'PX',
-          expect.any(Number)
+          expect.any(Number),
         );
       });
 
@@ -216,7 +216,7 @@ describe('Idempotency Cache', () => {
           'idem:px-key',
           expect.any(String),
           'PX',
-          customTtl
+          customTtl,
         );
       });
 

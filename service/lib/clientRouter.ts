@@ -18,7 +18,7 @@ export function determineClientType(symbol: string): 'fx' | 'crypto' {
 export function getClient(
   apiKey: string,
   secret: string,
-  symbol: string
+  symbol: string,
 ): FxPrivateRestClient | CryptoPrivateRestClient {
   const clientType = determineClientType(symbol);
 
@@ -99,10 +99,7 @@ export function isValidSymbol(symbol: string): boolean {
 /**
  * Check if executionType is supported for the symbol
  */
-export function isValidExecutionType(
-  symbol: string,
-  executionType: string
-): boolean {
+export function isValidExecutionType(symbol: string, executionType: string): boolean {
   const clientType = determineClientType(symbol);
 
   if (clientType === 'fx') {
