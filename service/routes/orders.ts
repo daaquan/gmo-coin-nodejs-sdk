@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { FxPrivateRestClient, CryptoPrivateRestClient } from '../../src/rest.js';
-import { validateFxOrder } from '../../src/validation.js';
+import { validateFxOrder, validateFxIfoOrder } from '../../src/validation.js';
 import { gmoPostGate, gmoGetGate } from '../lib/rateLimiter.js';
 import { getFxCreds, getCryptoCreds, tenantFromReq } from '../lib/tenants.js';
 import { determineClientType } from '../lib/clientRouter.js';
@@ -70,6 +70,52 @@ export function registerOrderRoutes(app: FastifyInstance) {
     if (idemKey && sent) {
       await setIdempotent(idemKey, 200, sent);
     }
+
+    return handleResult(reply, result);
+  });
+
+  // POST /v1/ifoOrder (FX only)
+  // Supports idempotency via x-idempotency-key.
+  // Wrapper schema: { symbol, side, executionType(LIMIT|STOP), price, size, takeProfitPrice, stopLossPrice, expireDate?, timeInForce?, clientOrderId? }
+  app.post('/v1/ifoOrder', { preHandler: [gmoPostGate] }, async (req, reply) => {
+    const tenant = tenantFromReq(req.headers, req.body as any);
+    const body = req.body as any;
+
+    const clientType = determineClientType(body.symbol);
+    if (clientType !== 'fx') return reply.status(400).send({ error: 'ifoOrder is FX-only' });
+
+    const idemKey = idemKeyFromReq(req.headers);
+    if (idemKey) {
+      const cached = await getIdempotent(idemKey);
+      if (cached) return reply.status(cached.status).send(cached.body);
+    }
+
+    const { apiKey, secret } = getFxCreds(tenant);
+    const fx = new FxPrivateRestClient(apiKey, secret);
+
+    const validated = validateFxIfoOrder(body);
+
+    // Translate wrapper -> GMO ifoOrder body.
+    // This mapping is kept explicit to stay fail-closed.
+    const gmoBody: any = {
+      symbol: validated.symbol,
+      side: validated.side,
+      executionType: validated.executionType,
+      price: validated.price,
+      size: validated.size,
+      takeProfitPrice: validated.takeProfitPrice,
+      stopLossPrice: validated.stopLossPrice,
+    };
+    if (validated.clientOrderId) gmoBody.clientOrderId = validated.clientOrderId;
+    if (validated.expireDate) gmoBody.expireDate = validated.expireDate;
+    if (validated.timeInForce) gmoBody.timeInForce = validated.timeInForce;
+
+    const result = await fx.placeIfdocoOrder(gmoBody);
+
+    const sent = (result && result.success)
+      ? { status: 0, data: result.data, responsetime: new Date().toISOString() }
+      : null;
+    if (idemKey && sent) await setIdempotent(idemKey, 200, sent);
 
     return handleResult(reply, result);
   });
