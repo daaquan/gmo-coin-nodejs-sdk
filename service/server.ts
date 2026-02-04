@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { registerAccountRoutes } from './routes/account.js';
 import { registerOrderRoutes } from './routes/orders.js';
 import { registerPositionRoutes } from './routes/positions.js';
+import { registerTradeRoutes } from './routes/trades.js';
 import { registerStreamRoutes } from './routes/stream.js';
 import { serviceAuthHook } from './lib/auth.js';
 import { registerMetricsRoute } from './routes/metrics.js';
@@ -32,6 +33,7 @@ app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOStrin
 registerAccountRoutes(app);
 registerOrderRoutes(app);
 registerPositionRoutes(app);
+registerTradeRoutes(app);
 registerStreamRoutes(app);
 registerMetricsRoute(app);
 registerWsAuthRoutes(app);
