@@ -17,6 +17,9 @@ function getBearer(req: FastifyRequest): string | null {
 }
 
 export async function serviceAuthHook(req: FastifyRequest, reply: FastifyReply) {
+  // Allow unauthenticated health checks (for Docker/K8s)
+  if (req.url === '/health') return;
+
   const mode = getMode();
   if (mode === 'disabled') return;
 
