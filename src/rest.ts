@@ -115,10 +115,15 @@ export class FxPrivateRestClient extends BaseRestClient {
     return this._request<T.FxAsset>('GET', `${V}/account/assets`, { schema: T.FxAssetSchema });
   }
 
-  getActiveOrders(q?: { symbol?: string } & T.PaginationOptions) {
-    const opts: any = { schema: z.array(T.FxActiveOrderSchema) };
+  async getActiveOrders(q?: { symbol?: string } & T.PaginationOptions) {
+    // FX API returns { list: [...] } inside data envelope.
+    const schema = z.object({ list: z.array(T.FxActiveOrderSchema) });
+    const opts: any = { schema };
     if (q) opts.qs = q;
-    return this._request<T.FxActiveOrder[]>('GET', `${V}/activeOrders`, opts);
+
+    const res = await this._request<{ list: T.FxActiveOrder[] }>('GET', `${V}/activeOrders`, opts);
+    if (!res.success) return res;
+    return { success: true, data: res.data.list } as T.Result<T.FxActiveOrder[]>;
   }
 
   getExecutions(q: { executionId: string }) {

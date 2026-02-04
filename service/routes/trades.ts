@@ -15,6 +15,13 @@ export function registerTradeRoutes(app: FastifyInstance) {
 
     let result: any;
     if (clientType === 'fx') {
+      if (!query.executionId) {
+        return reply.status(400).send({
+          status: 1,
+          error: 'Validation Error',
+          details: [{ message: 'executionId is required for FX executions' }],
+        });
+      }
       const { apiKey, secret } = getFxCreds(tenant);
       const fx = new FxPrivateRestClient(apiKey, secret);
       result = await fx.getExecutions({ executionId: String(query.executionId) });
