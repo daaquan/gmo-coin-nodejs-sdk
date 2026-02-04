@@ -101,12 +101,27 @@ export const FxExecutionSchema = z.object({
 });
 export type FxExecution = z.infer<typeof FxExecutionSchema>;
 
-export const FxPositionSummarySchema = z.object({
-  symbol: z.string(),
-  side: SideSchema,
-  size: z.string(),
-  price: z.string(),
-});
+// FX position summary shape differs between endpoints/accounts.
+// Observed variants:
+// - { symbol, side, size, price }
+// - { symbol, side, sumSize, avgPrice }
+// Normalize to { symbol, side, size, price }.
+export const FxPositionSummarySchema = z
+  .object({
+    symbol: z.string(),
+    side: SideSchema,
+    size: z.string().optional(),
+    price: z.string().optional(),
+    sumSize: z.string().optional(),
+    avgPrice: z.string().optional(),
+  })
+  .transform((x) => ({
+    symbol: x.symbol,
+    side: x.side,
+    size: x.size ?? x.sumSize,
+    price: x.price ?? x.avgPrice,
+  }))
+  .refine((x) => !!x.size && !!x.price, { message: 'Missing size/price fields in positionSummary item' });
 export type FxPositionSummary = z.infer<typeof FxPositionSummarySchema>;
 
 // ====== CRYPTO DATA SCHEMAS ======
