@@ -238,23 +238,23 @@ export class CryptoPrivateRestClient extends BaseRestClient {
   }
 
   placeOrder(body: unknown) {
-    return this._request<any>('POST', `${V}/orders`, { body });
+    return this._request<any>('POST', `${V}/order`, { body });
   }
 
   placeOcoOrder(body: unknown) {
-    return this._request<any>('POST', `${V}/orders`, { body });
+    return this._request<any>('POST', `${V}/order`, { body });
   }
 
   placeIfdOrder(body: unknown) {
-    return this._request<any>('POST', `${V}/orders`, { body });
+    return this._request<any>('POST', `${V}/order`, { body });
   }
 
   placeIfdocoOrder(body: unknown) {
-    return this._request<any>('POST', `${V}/orders`, { body });
+    return this._request<any>('POST', `${V}/order`, { body });
   }
 
   cancelOrder(orderId: string) {
-    return this._request<any>('DELETE', `${V}/orders/${orderId}`);
+    return this._request<any>('POST', `${V}/cancelOrder`, { body: { orderId } });
   }
 
   changeOrder(body: unknown) {
