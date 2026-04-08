@@ -89,6 +89,31 @@ export class FxPublicRestClient extends PublicRestClient {
   constructor(baseUrl = FOREX_PUBLIC_BASE) {
     super(baseUrl);
   }
+
+  /**
+   * FX API /v1/ticker returns an array even when ?symbol= is specified.
+   * Override to parse as array and extract the matching entry.
+   */
+  async getTicker(symbol: string): Promise<T.Result<T.Ticker>> {
+    const cacheKey = `ticker:${symbol}`;
+    const cached = this.cache.get<T.Ticker>(cacheKey);
+    if (cached) return { success: true, data: cached };
+
+    const result = await this._get<T.Ticker[]>(
+      `${V}/ticker`,
+      { symbol },
+      z.array(T.TickerSchema),
+    );
+    if (!result.success) return result as T.Result<T.Ticker>;
+
+    const match = result.data.find((t) => t.symbol === symbol);
+    if (!match) {
+      return { success: false, error: new Error(`Ticker not found for symbol: ${symbol}`) };
+    }
+
+    this.cache.set(cacheKey, match, 1000);
+    return { success: true, data: match };
+  }
 }
 
 export class CryptoPublicRestClient extends PublicRestClient {

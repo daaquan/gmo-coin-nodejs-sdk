@@ -245,7 +245,7 @@ describe('Public API Caching', () => {
     it('should cache ticker results', async () => {
       const mockResp = {
         status: 0,
-        data: {
+        data: [{
           symbol: 'USD_JPY',
           bid: '150.00',
           ask: '150.10',
@@ -253,7 +253,7 @@ describe('Public API Caching', () => {
           low: '149.00',
           volume: '1000000',
           timestamp: '2024-01-01T00:00:00Z',
-        },
+        }],
         responsetime: '2024-01-01T00:00:00Z',
       };
 
@@ -309,7 +309,7 @@ describe('Public API Caching', () => {
     it('should use separate cache for different symbols', async () => {
       const usdResp = {
         status: 0,
-        data: {
+        data: [{
           symbol: 'USD_JPY',
           bid: '150.00',
           ask: '150.10',
@@ -317,13 +317,13 @@ describe('Public API Caching', () => {
           low: '149.00',
           volume: '1000000',
           timestamp: '2024-01-01T00:00:00Z',
-        },
+        }],
         responsetime: '2024-01-01T00:00:00Z',
       };
 
       const eurResp = {
         status: 0,
-        data: {
+        data: [{
           symbol: 'EUR_JPY',
           bid: '160.00',
           ask: '160.10',
@@ -331,7 +331,7 @@ describe('Public API Caching', () => {
           low: '159.00',
           volume: '1000000',
           timestamp: '2024-01-01T00:00:00Z',
-        },
+        }],
         responsetime: '2024-01-01T00:00:00Z',
       };
 
@@ -369,7 +369,7 @@ describe('Public API Caching', () => {
 
       const mockResp = {
         status: 0,
-        data: {
+        data: [{
           symbol: 'USD_JPY',
           bid: '150.00',
           ask: '150.10',
@@ -377,7 +377,7 @@ describe('Public API Caching', () => {
           low: '149.00',
           volume: '1000000',
           timestamp: '2024-01-01T00:00:00Z',
-        },
+        }],
         responsetime: '2024-01-01T00:00:00Z',
       };
 
