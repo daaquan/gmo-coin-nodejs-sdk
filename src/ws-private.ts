@@ -8,7 +8,7 @@
  */
 import WebSocket from 'ws';
 import { buildHeaders } from './auth.js';
-import { wsGate } from './rateLimiter.js';
+import { postGate, wsGate } from './rateLimiter.js';
 
 const WS_BASE = 'wss://forex-api.coin.z.com/ws/private/v1';
 const WS_TIMEOUT = 30_000; // 30 seconds
@@ -27,22 +27,44 @@ export class FxPrivateWsAuth {
     }
   }
 
+  /**
+   * GMO FX private API ws-auth spec:
+   *   POST   /v1/ws-auth                 body: {} (empty JSON)
+   *   PUT    /v1/ws-auth?token=<token>   body: (empty)   — token goes in query string
+   *   DELETE /v1/ws-auth?token=<token>   body: (empty)   — token goes in query string
+   * Signature input = timestamp + method + PATH (without query) + body.
+   */
   private async call(
     method: 'POST' | 'PUT' | 'DELETE',
     path = '/v1/ws-auth',
     body?: { token?: string },
   ) {
-    const payload = body ? JSON.stringify(body) : JSON.stringify({});
-    const headers = buildHeaders(this.apiKey, this.secret, method, path, payload);
+    // Throttle auth calls so reconnect/restart loops don't trip ERR-5003.
+    await postGate.wait();
+
+    let url = this.restBase + path;
+    let requestBody: string | undefined;
+    let signBody = '';
+    if (method === 'POST') {
+      // create() — signed body is "{}"
+      requestBody = JSON.stringify({});
+      signBody = requestBody;
+    } else if (body?.token) {
+      // extend()/revoke() — token in query string, empty body
+      url += `?token=${encodeURIComponent(body.token)}`;
+    }
+
+    const headers = buildHeaders(this.apiKey, this.secret, method, path, signBody);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), WS_TIMEOUT);
     try {
-      const res = await fetch(this.restBase + path, {
+      const init: RequestInit = {
         method,
         headers,
-        body: payload,
         signal: controller.signal,
-      });
+      };
+      if (requestBody !== undefined) init.body = requestBody;
+      const res = await fetch(url, init);
       let json: Record<string, unknown> | null = null;
       try {
         json = await res.json();
