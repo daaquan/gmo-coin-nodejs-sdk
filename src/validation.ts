@@ -62,10 +62,32 @@ export const FxIfoOrderReqSchema = z
 // Aliases for compatibility
 export const FxIfdOrderReqSchema = z.any();
 export const FxCloseOrderReqSchema = z.any();
-export const CryptoOrderReqSchema = z.any();
-export const TickerRequestSchema = z.any();
-export const OrderBookRequestSchema = z.any();
-export const KlinesRequestSchema = z.any();
+export const CryptoOrderReqSchema = z.object({
+  symbol: T.CryptoSymbolSchema,
+  side: T.SideSchema,
+  executionType: z.enum(['MARKET', 'LIMIT', 'STOP']).default('MARKET'),
+  size: T.SizeSchema,
+  price: T.PriceSchema.optional(),
+  stopPrice: T.PriceSchema.optional(),
+  clientOrderId: z.string().optional(),
+  timeInForce: z.enum(['FAS', 'FOK', 'FAK', 'SOK', 'DAY']).optional(),
+});
+
+export const TickerRequestSchema = z.object({
+  symbol: T.CryptoSymbolSchema.or(T.FxSymbolSchema),
+});
+
+export const OrderBookRequestSchema = z.object({
+  symbol: T.CryptoSymbolSchema.or(T.FxSymbolSchema),
+  depth: z.enum(['10', '20', '50', '100']).optional().default('10'),
+});
+
+export const KlinesRequestSchema = z.object({
+  symbol: T.CryptoSymbolSchema.or(T.FxSymbolSchema),
+  interval: z.enum(['1m', '5m', '15m', '30m', '1h', '4h', '8h', '12h', '1d', '1w', '1M']),
+  count: z.string().optional(),
+  before: z.string().optional(),
+});
 
 // ====== VALIDATION FUNCTIONS ======
 
@@ -109,7 +131,8 @@ export const validateCryptoOrderSafe = (data: unknown) => {
 };
 
 export const validateFxSymbol = (symbol: string) => T.FxSymbolSchema.safeParse(symbol).success;
-export const validateCryptoSymbol = (symbol: string) => T.CryptoSymbolSchema.safeParse(symbol).success;
+export const validateCryptoSymbol = (symbol: string) =>
+  T.CryptoSymbolSchema.safeParse(symbol).success;
 
 export const getFxSymbols = () => T.FxSymbols;
 export const getCryptoSymbols = () => T.CryptoSymbols;

@@ -43,7 +43,7 @@ describe('serviceAuthHook', () => {
       await serviceAuthHook(req as any, reply as any);
 
       expect(mockVerifyJwt).toHaveBeenCalledWith(
-        'Bearer valid-token',
+        'valid-token',
         expect.objectContaining({
           jwksUrl: 'https://auth.example.com/.well-known/jwks.json',
         }),

@@ -115,14 +115,21 @@ export class AuditLogger {
       logEntry.responseData = maskValue(options.responseData, this.config.piiPatterns);
     }
     if (options?.error) {
-      const errorVal = options.error instanceof Error
-        ? (this.config.includeStackTrace ? options.error.stack : options.error.message)
-        : String(options.error);
+      const errorVal =
+        options.error instanceof Error
+          ? this.config.includeStackTrace
+            ? options.error.stack
+            : options.error.message
+          : String(options.error);
       if (errorVal) logEntry.error = errorVal;
     }
 
     this.config.logger(logEntry);
   }
+}
+
+export function createAuditLogger(config?: AuditLoggerConfig): AuditLogger {
+  return new AuditLogger(config);
 }
 
 export const auditLogger = new AuditLogger({
@@ -131,6 +138,8 @@ export const auditLogger = new AuditLogger({
   logResponseData: false,
   logger: (entry) => {
     const level = entry.error ? 'ERROR' : entry.statusCode >= 400 ? 'WARN' : 'INFO';
-    console.log(`[AUDIT:${level}] ${entry.method} ${entry.path} - ${entry.statusCode} (${entry.duration}ms)`);
+    console.log(
+      `[AUDIT:${level}] ${entry.method} ${entry.path} - ${entry.statusCode} (${entry.duration}ms)`,
+    );
   },
 });
