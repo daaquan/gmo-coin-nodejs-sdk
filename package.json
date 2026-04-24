@@ -1,12 +1,13 @@
 {
   "name": "gmo-coin-sdk",
-  "version": "1.4.4",
+  "version": "1.4.5",
   "description": "GMO Coin Private API SDK for Forex and Cryptocurrency (Node.js/TypeScript)",
   "type": "module",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "prepare": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
