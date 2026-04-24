@@ -100,43 +100,46 @@ describe('FxPrivateWsAuth', () => {
       );
     });
 
-    it('extend() sends PUT with token in query string and empty body (signed with empty body)', async () => {
+    it('extend() sends PUT with token in JSON body but signs WITHOUT body', async () => {
       const auth = new FxPrivateWsAuth(mockApiKey, mockSecret, testRestBase);
       const token = 'abc-123';
       await auth.extend(token);
 
       expect(calls).toHaveLength(1);
       const call = calls[0]!;
-      expect(call.url).toBe(`${testRestBase}/v1/ws-auth?token=${token}`);
+      // URL has no query string — GMO FX rejects query-string token with ERR-5105.
+      expect(call.url).toBe(`${testRestBase}/v1/ws-auth`);
       expect(call.init.method).toBe('PUT');
-      // body must NOT contain the token — that would break the signature on GMO's side
-      expect(call.init.body).toBeUndefined();
+      expect(call.init.body).toBe(JSON.stringify({ token }));
+      // Signature text MUST omit the body for PUT /v1/ws-auth (GMO FX quirk).
       verifySignature(
         { method: 'PUT', path: '/v1/ws-auth', body: '' },
         extractHeaders(call.init),
       );
     });
 
-    it('revoke() sends DELETE with token in query string and empty body', async () => {
+    it('revoke() sends DELETE with token in JSON body but signs WITHOUT body', async () => {
       const auth = new FxPrivateWsAuth(mockApiKey, mockSecret, testRestBase);
       const token = 'xyz-789';
       await auth.revoke(token);
 
       expect(calls).toHaveLength(1);
       const call = calls[0]!;
-      expect(call.url).toBe(`${testRestBase}/v1/ws-auth?token=${token}`);
+      expect(call.url).toBe(`${testRestBase}/v1/ws-auth`);
       expect(call.init.method).toBe('DELETE');
-      expect(call.init.body).toBeUndefined();
+      expect(call.init.body).toBe(JSON.stringify({ token }));
       verifySignature(
         { method: 'DELETE', path: '/v1/ws-auth', body: '' },
         extractHeaders(call.init),
       );
     });
 
-    it('extend() url-encodes unusual token characters', async () => {
+    it('extend() passes unusual token characters through as-is in the JSON body', async () => {
       const auth = new FxPrivateWsAuth(mockApiKey, mockSecret, testRestBase);
-      await auth.extend('a/b+c=d');
-      expect(calls[0]!.url).toBe(`${testRestBase}/v1/ws-auth?token=a%2Fb%2Bc%3Dd`);
+      const token = 'a/b+c=d';
+      await auth.extend(token);
+      expect(calls[0]!.url).toBe(`${testRestBase}/v1/ws-auth`);
+      expect(calls[0]!.init.body).toBe(JSON.stringify({ token }));
     });
   });
 });

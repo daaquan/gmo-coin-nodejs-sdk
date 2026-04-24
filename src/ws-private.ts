@@ -28,11 +28,16 @@ export class FxPrivateWsAuth {
   }
 
   /**
-   * GMO FX private API ws-auth spec:
-   *   POST   /v1/ws-auth                 body: {} (empty JSON)
-   *   PUT    /v1/ws-auth?token=<token>   body: (empty)   — token goes in query string
-   *   DELETE /v1/ws-auth?token=<token>   body: (empty)   — token goes in query string
-   * Signature input = timestamp + method + PATH (without query) + body.
+   * GMO FX private API ws-auth spec (per official docs at
+   * https://api.coin.z.com/fxdocs/#ws-auth):
+   *   POST   /v1/ws-auth   body: {}                   sign: ts + 'POST'   + path + '{}'
+   *   PUT    /v1/ws-auth   body: {"token":"<token>"}  sign: ts + 'PUT'    + path    ← body NOT signed
+   *   DELETE /v1/ws-auth   body: {"token":"<token>"}  sign: ts + 'DELETE' + path    ← body NOT signed
+   * The PUT/DELETE signature intentionally omits the body — this differs
+   * from every other GMO private endpoint and from the Crypto variant:
+   *   - body-inclusive signing produced ERR-5010 (signature mismatch);
+   *   - moving the token to the query string produced ERR-5105 (parameter
+   *     type mismatch), because the server still expects it in the body.
    */
   private async call(
     method: 'POST' | 'PUT' | 'DELETE',
@@ -42,7 +47,7 @@ export class FxPrivateWsAuth {
     // Throttle auth calls so reconnect/restart loops don't trip ERR-5003.
     await postGate.wait();
 
-    let url = this.restBase + path;
+    const url = this.restBase + path;
     let requestBody: string | undefined;
     let signBody = '';
     if (method === 'POST') {
@@ -50,8 +55,9 @@ export class FxPrivateWsAuth {
       requestBody = JSON.stringify({});
       signBody = requestBody;
     } else if (body?.token) {
-      // extend()/revoke() — token in query string, empty body
-      url += `?token=${encodeURIComponent(body.token)}`;
+      // extend()/revoke() — token sent in JSON body but NOT included in signature.
+      requestBody = JSON.stringify({ token: body.token });
+      // signBody stays '' per the GMO FX ws-auth quirk documented above.
     }
 
     const headers = buildHeaders(this.apiKey, this.secret, method, path, signBody);
