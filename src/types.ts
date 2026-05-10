@@ -107,6 +107,21 @@ export type FxExecution = z.infer<typeof FxExecutionSchema>;
 // - { symbol, side, sumSize, avgPrice }
 // - { symbol, side, sumPositionSize, averagePositionRate } (actual GMO FX API)
 // Normalize to { symbol, side, size, price }.
+// FX open positions API returns { list: [...] } inside data envelope.
+// Each row carries the open position state and the current snapshot lossGain/totalSwap.
+export const FxOpenPositionSchema = z.object({
+  positionId: z.number(),
+  symbol: z.string(),
+  side: SideSchema,
+  size: z.string(),
+  orderedSize: z.string().optional(),
+  price: z.string(),
+  lossGain: z.string().optional(),
+  totalSwap: z.string().optional(),
+  timestamp: z.string(),
+});
+export type FxOpenPosition = z.infer<typeof FxOpenPositionSchema>;
+
 export const FxPositionSummarySchema = z
   .object({
     symbol: z.string(),
