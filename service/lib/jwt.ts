@@ -17,7 +17,7 @@ function extractBearerToken(token: string): string {
     throw new Error('missing_bearer');
   }
   const match = trimmed.match(/^Bearer\s+(.+)$/);
-  if (!match) {
+  if (!match || !match[1]) {
     throw new Error('missing_bearer');
   }
   return match[1];
