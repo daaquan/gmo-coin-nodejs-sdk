@@ -53,11 +53,39 @@ export function handleResult<T>(reply: FastifyReply, result: Result<T>) {
 /**
  * Global error handler for Fastify
  */
-export function globalErrorHandler(error: FastifyError, _req: FastifyRequest, reply: FastifyReply) {
+export function globalErrorHandler(error: FastifyError, req: FastifyRequest, reply: FastifyReply) {
+  const message = error.message || '';
+  const requestId = (req as any).id;
+
+  // Rate limit errors
+  if (message.includes('ERR-5003') || message.includes('Rate limit exceeded')) {
+    return reply.status(429).send({
+      status: 'error',
+      code: 'rate_limit_exceeded',
+      message: 'Rate limit exceeded',
+      requestId,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  // Timestamp skew errors
+  if (message.includes('ERR-5008') || message.includes('ERR-5009') || message.includes('Timestamp')) {
+    return reply.status(400).send({
+      status: 'error',
+      code: 'timestamp_skew',
+      message: 'Timestamp skew detected',
+      requestId,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   const statusCode = error.statusCode || 500;
-  reply.status(statusCode).send({
-    status: 1,
+  const response: Record<string, unknown> = {
+    status: 'error',
     error: error.name,
     message: error.message,
-  });
+    timestamp: new Date().toISOString(),
+  };
+  if (requestId) response.requestId = requestId;
+  reply.status(statusCode).send(response);
 }

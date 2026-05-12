@@ -18,7 +18,7 @@ describe('CryptoPrivateRestClient Integration Tests', () => {
 
   beforeEach(() => {
     client = new CryptoPrivateRestClient(mockApiKey, mockSecret);
-    mockFetch.mockClear();
+    mockFetch.mockReset();
   });
 
   describe('Complete Trading Workflow', () => {
@@ -313,17 +313,19 @@ describe('CryptoPrivateRestClient Integration Tests', () => {
         ok: true,
         json: vi.fn().mockResolvedValue({
           status: 0,
-          data: [{ symbol: 'BTC', amount: '1.0', available: '1.0' }],
+          data: [{ symbol: 'USDT', amount: '1.0', available: '1.0' }],
           responsetime: '2025-01-01T03:00:01.000Z',
         }),
       });
 
-      // First attempt fails
-      await expect(client.getAssets()).rejects.toThrow();
+      // First attempt returns error result
+      const firstResult = await client.getAssets();
+      expect(firstResult.success).toBe(false);
 
       // Retry succeeds
       const assets = await client.getAssets();
-      expect(assets.data).toHaveLength(1);
+      expect(assets.success).toBe(true);
+      expect((assets as any).data).toHaveLength(1);
     });
   });
 

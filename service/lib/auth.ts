@@ -4,8 +4,10 @@ import { verifyJwt } from './jwt.js';
 type Mode = 'disabled' | 'jwt' | 'shared';
 
 function getMode(): Mode {
-  const v = (process.env.SERVICE_AUTH_MODE || 'disabled').toLowerCase();
-  if (v === 'jwt' || v === 'shared' || v === 'disabled') return v;
+  const v = (process.env.SERVICE_AUTH_MODE || '').toLowerCase();
+  if (v === 'jwt') return 'jwt';
+  if (v === 'shared') return 'shared';
+  if (process.env.SERVICE_AUTH_TOKEN) return 'shared';
   return 'disabled';
 }
 
@@ -23,16 +25,14 @@ export async function serviceAuthHook(req: FastifyRequest, reply: FastifyReply) 
   const mode = getMode();
   if (mode === 'disabled') return;
 
-  const token = getBearer(req);
-  if (!token) return reply.status(401).send({ error: 'Missing or invalid token' });
-
   if (mode === 'shared') {
     const expected = process.env.SERVICE_AUTH_TOKEN;
     if (!expected) {
       return reply.status(500).send({ error: 'SERVICE_AUTH_TOKEN not set' });
     }
-    if (token !== expected) {
-      return reply.status(401).send({ error: 'Token verification failed' });
+    const token = getBearer(req);
+    if (!token || token !== expected) {
+      return reply.status(401).send({ error: 'unauthorized' });
     }
     (req as any).user = { sub: 'shared-token' };
     return;
@@ -40,16 +40,20 @@ export async function serviceAuthHook(req: FastifyRequest, reply: FastifyReply) 
 
   // mode === 'jwt'
   try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return reply.status(401).send({ error: 'unauthorized_jwt' });
+    }
+
     const options: any = {
       jwksUrl: process.env.JWKS_URL || '',
+      issuer: process.env.JWT_ISSUER,
     };
-
-    if (process.env.JWT_ISSUER) options.issuer = process.env.JWT_ISSUER;
     if (process.env.JWT_AUDIENCE) options.audience = process.env.JWT_AUDIENCE;
 
-    const payload = await verifyJwt(token, options);
+    const payload = await verifyJwt(authHeader, options);
     (req as any).user = payload;
   } catch {
-    return reply.status(401).send({ error: 'Token verification failed' });
+    return reply.status(401).send({ error: 'unauthorized_jwt' });
   }
 }

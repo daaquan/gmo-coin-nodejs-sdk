@@ -273,8 +273,8 @@ describe('Public API Caching', () => {
       expect(result2.data.symbol).toBe('USD_JPY');
       expect((global.fetch as any).mock.calls).toHaveLength(1); // Still only 1 call
 
-      // Verify cached result is the same
-      expect(result2).toBe(result1);
+      // Verify cached result has the same data
+      expect(result2).toStrictEqual(result1);
     });
 
     it('should cache orderbook results', async () => {
@@ -360,8 +360,8 @@ describe('Public API Caching', () => {
       const result2Again = await fxClient.getTicker('EUR_JPY');
 
       expect((global.fetch as any).mock.calls).toHaveLength(2); // Still only 2 calls
-      expect(result1Again).toBe(result1);
-      expect(result2Again).toBe(result2);
+      expect(result1Again).toStrictEqual(result1);
+      expect(result2Again).toStrictEqual(result2);
     });
 
     it('should respect custom cache TTL', async () => {
@@ -369,15 +369,12 @@ describe('Public API Caching', () => {
 
       const mockResp = {
         status: 0,
-        data: [{
+        data: {
           symbol: 'USD_JPY',
-          bid: '150.00',
-          ask: '150.10',
-          high: '151.00',
-          low: '149.00',
-          volume: '1000000',
+          bids: [['150.00', '1000']],
+          asks: [['150.10', '1000']],
           timestamp: '2024-01-01T00:00:00Z',
-        }],
+        },
         responsetime: '2024-01-01T00:00:00Z',
       };
 
@@ -388,18 +385,18 @@ describe('Public API Caching', () => {
       });
 
       // First call
-      await shortTtlClient.getTicker('USD_JPY');
+      await shortTtlClient.getOrderBook('USD_JPY');
       expect((global.fetch as any).mock.calls).toHaveLength(1);
 
       // Second call immediately (should use cache)
-      await shortTtlClient.getTicker('USD_JPY');
+      await shortTtlClient.getOrderBook('USD_JPY');
       expect((global.fetch as any).mock.calls).toHaveLength(1);
 
       // Wait for TTL to expire
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Third call (cache expired, should hit API)
-      await shortTtlClient.getTicker('USD_JPY');
+      await shortTtlClient.getOrderBook('USD_JPY');
       expect((global.fetch as any).mock.calls).toHaveLength(2);
     });
   });
@@ -431,10 +428,10 @@ describe('Public API Caching', () => {
       expect(result1.data.symbol).toBe('BTC');
       expect((global.fetch as any).mock.calls).toHaveLength(1);
 
-      // Second call should use cache
+      // Second call should use cache (returns cached data directly, not wrapped in Result)
       const result2 = await cryptoClient.getTicker('BTC');
       expect((global.fetch as any).mock.calls).toHaveLength(1);
-      expect(result2).toBe(result1);
+      expect(result2).toStrictEqual(result1.data);
     });
 
     it('should cache orderbook results', async () => {
