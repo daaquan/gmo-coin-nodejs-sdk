@@ -191,7 +191,8 @@ export const validateCryptoOrderSafe = (data: unknown) => {
 };
 
 export const validateFxSymbol = (symbol: string) => T.FxSymbolSchema.safeParse(symbol).success;
-export const validateCryptoSymbol = (symbol: string) => T.CryptoSymbolSchema.safeParse(symbol).success;
+export const validateCryptoSymbol = (symbol: string) =>
+  T.CryptoSymbolSchema.safeParse(symbol).success;
 
 export const getFxSymbols = () => T.FxSymbols;
 export const getCryptoSymbols = () => T.CryptoSymbols;

@@ -62,9 +62,21 @@ describe('Unified Pagination', () => {
     });
 
     it('should support pagination on getOpenPositions', async () => {
+      // FX openPositions wraps rows in { list: [...] } inside the data envelope.
       const mockResp = {
         status: 0,
-        data: [{ positionId: 1, symbol: 'USD_JPY', side: 'BUY', size: '1.0', price: '150.00' }],
+        data: {
+          list: [
+            {
+              positionId: 1,
+              symbol: 'USD_JPY',
+              side: 'BUY',
+              size: '1.0',
+              price: '150.00',
+              timestamp: '2024-01-01T00:00:00Z',
+            },
+          ],
+        },
         responsetime: '2024-01-01T00:00:00Z',
       };
 
@@ -80,8 +92,11 @@ describe('Unified Pagination', () => {
         count: '25',
       });
 
-      expect(result.status).toBe(0);
-      expect(result.data).toHaveLength(1);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toHaveLength(1);
+        expect(result.data[0]?.positionId).toBe(1);
+      }
 
       const callUrl = (global.fetch as any).mock.calls[0][0];
       expect(callUrl.toString()).toContain('prevId=456');

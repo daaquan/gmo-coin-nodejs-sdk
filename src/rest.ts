@@ -172,10 +172,19 @@ export class FxPrivateRestClient extends BaseRestClient {
     return this._request<T.FxExecution[]>('GET', `${V}/latestExecutions`, { qs: q });
   }
 
-  getOpenPositions(q?: { symbol?: string } & T.PaginationOptions) {
-    const opts: any = {};
+  async getOpenPositions(q?: { symbol?: string } & T.PaginationOptions) {
+    // FX API returns { list: [...] } inside data envelope.
+    const schema = z.object({ list: z.array(T.FxOpenPositionSchema) });
+    const opts: any = { schema };
     if (q) opts.qs = normalizeFxQuery(q);
-    return this._request<any[]>('GET', `${V}/openPositions`, opts);
+
+    const res = await this._request<{ list: T.FxOpenPosition[] }>(
+      'GET',
+      `${V}/openPositions`,
+      opts,
+    );
+    if (!res.success) return res;
+    return { success: true, data: res.data.list } as T.Result<T.FxOpenPosition[]>;
   }
 
   async getPositionSummary(q?: { symbol?: string }) {

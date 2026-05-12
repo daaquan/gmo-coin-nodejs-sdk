@@ -3,6 +3,26 @@ import { Result } from '../../src/types.js';
 import { z } from 'zod';
 
 /**
+ * Creates a standardized error response object
+ */
+export function createErrorResponse(
+  code: string,
+  message: string,
+  details?: unknown,
+  requestId?: string,
+) {
+  const response: Record<string, unknown> = {
+    status: 'error',
+    code,
+    message,
+    timestamp: new Date().toISOString(),
+  };
+  if (requestId) response.requestId = requestId;
+  if (details) response.details = details;
+  return response;
+}
+
+/**
  * Handles the Result from SDK and sends appropriate Fastify response
  */
 export function handleResult<T>(reply: FastifyReply, result: Result<T>) {

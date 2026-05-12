@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import crypto from 'node:crypto';
 import WebSocket from 'ws';
 import {
   FxPrivateWsAuth,
@@ -33,6 +34,113 @@ describe('FxPrivateWsAuth', () => {
     const customUrl = 'https://custom.example.com/private';
     const auth = new FxPrivateWsAuth(mockApiKey, mockSecret, customUrl);
     expect(auth).toBeInstanceOf(FxPrivateWsAuth);
+  });
+
+  describe('ws-auth REST calls (GMO FX spec)', () => {
+    const testRestBase = 'https://forex-api.coin.z.com/private';
+    let fetchSpy: ReturnType<typeof vi.spyOn>;
+    let calls: Array<{ url: string; init: RequestInit }>;
+
+    beforeEach(() => {
+      calls = [];
+      fetchSpy = vi
+        .spyOn(globalThis, 'fetch' as never)
+        .mockImplementation(async (input: any, init: any) => {
+          const url = typeof input === 'string' ? input : input?.toString?.() ?? '';
+          calls.push({ url, init });
+          return new Response(
+            JSON.stringify({ status: 0, data: 'new-token', responsetime: '2026-04-24T00:00:00Z' }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          ) as never;
+        });
+    });
+
+    afterEach(() => {
+      fetchSpy.mockRestore();
+    });
+
+    const verifySignature = (
+      expected: { method: string; path: string; body: string },
+      headers: Record<string, string>,
+    ) => {
+      const ts = headers['API-TIMESTAMP'];
+      expect(ts).toBeTruthy();
+      const text = ts + expected.method + expected.path + expected.body;
+      const expectedSign = crypto
+        .createHmac('sha256', mockSecret)
+        .update(text)
+        .digest('hex');
+      expect(headers['API-SIGN']).toBe(expectedSign);
+      expect(headers['API-KEY']).toBe(mockApiKey);
+    };
+
+    const extractHeaders = (init: RequestInit): Record<string, string> => {
+      const h = init.headers as Record<string, string> | Headers | undefined;
+      if (!h) return {};
+      if (h instanceof Headers) {
+        const out: Record<string, string> = {};
+        h.forEach((v, k) => (out[k] = v));
+        return out;
+      }
+      return h;
+    };
+
+    it('create() sends POST /v1/ws-auth with body "{}" and signs with that body', async () => {
+      const auth = new FxPrivateWsAuth(mockApiKey, mockSecret, testRestBase);
+      await auth.create();
+
+      expect(calls).toHaveLength(1);
+      const call = calls[0]!;
+      expect(call.url).toBe(`${testRestBase}/v1/ws-auth`);
+      expect(call.init.method).toBe('POST');
+      expect(call.init.body).toBe('{}');
+      verifySignature(
+        { method: 'POST', path: '/v1/ws-auth', body: '{}' },
+        extractHeaders(call.init),
+      );
+    });
+
+    it('extend() sends PUT with token in JSON body but signs WITHOUT body', async () => {
+      const auth = new FxPrivateWsAuth(mockApiKey, mockSecret, testRestBase);
+      const token = 'abc-123';
+      await auth.extend(token);
+
+      expect(calls).toHaveLength(1);
+      const call = calls[0]!;
+      // URL has no query string — GMO FX rejects query-string token with ERR-5105.
+      expect(call.url).toBe(`${testRestBase}/v1/ws-auth`);
+      expect(call.init.method).toBe('PUT');
+      expect(call.init.body).toBe(JSON.stringify({ token }));
+      // Signature text MUST omit the body for PUT /v1/ws-auth (GMO FX quirk).
+      verifySignature(
+        { method: 'PUT', path: '/v1/ws-auth', body: '' },
+        extractHeaders(call.init),
+      );
+    });
+
+    it('revoke() sends DELETE with token in JSON body but signs WITHOUT body', async () => {
+      const auth = new FxPrivateWsAuth(mockApiKey, mockSecret, testRestBase);
+      const token = 'xyz-789';
+      await auth.revoke(token);
+
+      expect(calls).toHaveLength(1);
+      const call = calls[0]!;
+      expect(call.url).toBe(`${testRestBase}/v1/ws-auth`);
+      expect(call.init.method).toBe('DELETE');
+      expect(call.init.body).toBe(JSON.stringify({ token }));
+      verifySignature(
+        { method: 'DELETE', path: '/v1/ws-auth', body: '' },
+        extractHeaders(call.init),
+      );
+    });
+
+    it('extend() passes unusual token characters through as-is in the JSON body', async () => {
+      const auth = new FxPrivateWsAuth(mockApiKey, mockSecret, testRestBase);
+      const token = 'a/b+c=d';
+      await auth.extend(token);
+      expect(calls[0]!.url).toBe(`${testRestBase}/v1/ws-auth`);
+      expect(calls[0]!.init.body).toBe(JSON.stringify({ token }));
+    });
   });
 });
 

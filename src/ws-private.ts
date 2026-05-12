@@ -8,7 +8,7 @@
  */
 import WebSocket from 'ws';
 import { buildHeaders } from './auth.js';
-import { wsGate } from './rateLimiter.js';
+import { postGate, wsGate } from './rateLimiter.js';
 
 const FX_WS_BASE = 'wss://forex-api.coin.z.com/ws/private/v1';
 const CRYPTO_WS_BASE = 'wss://api.coin.z.com/ws/private/v1';
@@ -49,22 +49,50 @@ export class FxPrivateWsAuth {
     }
   }
 
+  /**
+   * GMO FX private API ws-auth spec (per official docs at
+   * https://api.coin.z.com/fxdocs/#ws-auth):
+   *   POST   /v1/ws-auth   body: {}                   sign: ts + 'POST'   + path + '{}'
+   *   PUT    /v1/ws-auth   body: {"token":"<token>"}  sign: ts + 'PUT'    + path    ← body NOT signed
+   *   DELETE /v1/ws-auth   body: {"token":"<token>"}  sign: ts + 'DELETE' + path    ← body NOT signed
+   * The PUT/DELETE signature intentionally omits the body — this differs
+   * from every other GMO private endpoint and from the Crypto variant:
+   *   - body-inclusive signing produced ERR-5010 (signature mismatch);
+   *   - moving the token to the query string produced ERR-5105 (parameter
+   *     type mismatch), because the server still expects it in the body.
+   */
   private async call(
     method: 'POST' | 'PUT' | 'DELETE',
     path = '/v1/ws-auth',
     body?: { token?: string },
   ) {
-    const payload = body ? JSON.stringify(body) : JSON.stringify({});
-    const headers = buildHeaders(this.apiKey, this.secret, method, path, payload);
+    // Throttle auth calls so reconnect/restart loops don't trip ERR-5003.
+    await postGate.wait();
+
+    const url = this.restBase + path;
+    let requestBody: string | undefined;
+    let signBody = '';
+    if (method === 'POST') {
+      // create() — signed body is "{}"
+      requestBody = JSON.stringify({});
+      signBody = requestBody;
+    } else if (body?.token) {
+      // extend()/revoke() — token sent in JSON body but NOT included in signature.
+      requestBody = JSON.stringify({ token: body.token });
+      // signBody stays '' per the GMO FX ws-auth quirk documented above.
+    }
+
+    const headers = buildHeaders(this.apiKey, this.secret, method, path, signBody);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), WS_TIMEOUT);
     try {
-      const res = await fetch(this.restBase + path, {
+      const init: RequestInit = {
         method,
         headers,
-        body: payload,
         signal: controller.signal,
-      });
+      };
+      if (requestBody !== undefined) init.body = requestBody;
+      const res = await fetch(url, init);
       let json: Record<string, unknown> | null = null;
       try {
         json = await res.json();

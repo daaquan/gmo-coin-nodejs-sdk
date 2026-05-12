@@ -115,7 +115,23 @@ export type FxExecution = z.infer<typeof FxExecutionSchema>;
 // Observed variants:
 // - { symbol, side, size, price }
 // - { symbol, side, sumSize, avgPrice }
+// - { symbol, side, sumPositionSize, averagePositionRate } (actual GMO FX API)
 // Normalize to { symbol, side, size, price }.
+// FX open positions API returns { list: [...] } inside data envelope.
+// Each row carries the open position state and the current snapshot lossGain/totalSwap.
+export const FxOpenPositionSchema = z.object({
+  positionId: z.number(),
+  symbol: z.string(),
+  side: SideSchema,
+  size: z.string(),
+  orderedSize: z.string().optional(),
+  price: z.string(),
+  lossGain: z.string().optional(),
+  totalSwap: z.string().optional(),
+  timestamp: z.string(),
+});
+export type FxOpenPosition = z.infer<typeof FxOpenPositionSchema>;
+
 export const FxPositionSummarySchema = z
   .object({
     symbol: z.string(),
@@ -124,12 +140,19 @@ export const FxPositionSummarySchema = z
     price: z.string().optional(),
     sumSize: z.string().optional(),
     avgPrice: z.string().optional(),
+    sumPositionSize: z.string().optional(),
+    averagePositionRate: z.string().optional(),
+    positionLossGain: z.string().optional(),
+    sumOrderedSize: z.string().optional(),
+    sumTotalSwap: z.string().optional(),
   })
   .transform((x) => ({
     symbol: x.symbol,
     side: x.side,
-    size: x.size ?? x.sumSize,
-    price: x.price ?? x.avgPrice,
+    size: x.size ?? x.sumSize ?? x.sumPositionSize,
+    price: x.price ?? x.avgPrice ?? x.averagePositionRate,
+    positionLossGain: x.positionLossGain,
+    sumTotalSwap: x.sumTotalSwap,
   }))
   .refine((x) => !!x.size && !!x.price, { message: 'Missing size/price fields in positionSummary item' });
 export type FxPositionSummary = z.infer<typeof FxPositionSummarySchema>;
@@ -172,10 +195,11 @@ export const TickerSchema = z.object({
   symbol: z.string(),
   bid: z.string(),
   ask: z.string(),
-  high: z.string(),
-  low: z.string(),
-  volume: z.string(),
+  high: z.string().optional(),
+  low: z.string().optional(),
+  volume: z.string().optional(),
   timestamp: z.string(),
+  status: z.string().optional(),
 });
 export type Ticker = z.infer<typeof TickerSchema>;
 

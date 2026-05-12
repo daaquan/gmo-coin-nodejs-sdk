@@ -6,6 +6,9 @@ const PUBLIC_BASE = 'https://api.coin.z.com/public' as const;
 const FOREX_PUBLIC_BASE = 'https://forex-api.coin.z.com/public' as const;
 const V = '/v1' as const;
 const FETCH_TIMEOUT = 30_000;
+// Public ticker cache TTL: 5s keeps repeated callers (console-api, ingest,
+// strategy loops) from hammering the upstream REST endpoint.
+const TICKER_CACHE_TTL_MS = 5_000;
 
 class PublicCache {
   private cache = new Map<string, { data: unknown; expiry: number }>();
@@ -67,12 +70,21 @@ export class PublicRestClient {
     if (cached) return cached;
 
     const result = await this._get<T.Ticker>(`${V}/ticker`, { symbol }, T.TickerSchema);
-    if (result.success) this.cache.set(cacheKey, result, this.cacheTtlMs);
+    if (result.success) this.cache.set(cacheKey, result.data, TICKER_CACHE_TTL_MS);
     return result;
   }
 
   async getAllTickers(): Promise<T.Result<T.Ticker[]>> {
-    return this._get<T.Ticker[]>(`${V}/ticker`, undefined, z.array(T.TickerSchema));
+    const cacheKey = 'ticker:__all__';
+    const cached = this.cache.get<T.Ticker[]>(cacheKey);
+    if (cached) return { success: true, data: cached };
+    const result = await this._get<T.Ticker[]>(
+      `${V}/ticker`,
+      undefined,
+      z.array(T.TickerSchema),
+    );
+    if (result.success) this.cache.set(cacheKey, result.data, TICKER_CACHE_TTL_MS);
+    return result;
   }
 
   async getStatus(): Promise<T.Result<{ status: 'MAINTENANCE' | 'PREOPEN' | 'OPEN' }>> {
@@ -111,6 +123,31 @@ export class FxPublicRestClient extends PublicRestClient {
 
   getSupportedSymbols(): string[] {
     return [...T.FxSymbols];
+  }
+
+  /**
+   * FX API /v1/ticker returns an array even when ?symbol= is specified.
+   * Override to parse as array and extract the matching entry.
+   */
+  async getTicker(symbol: string): Promise<T.Result<T.Ticker>> {
+    const cacheKey = `ticker:${symbol}`;
+    const cached = this.cache.get<T.Ticker>(cacheKey);
+    if (cached) return { success: true, data: cached };
+
+    const result = await this._get<T.Ticker[]>(
+      `${V}/ticker`,
+      { symbol },
+      z.array(T.TickerSchema),
+    );
+    if (!result.success) return result as T.Result<T.Ticker>;
+
+    const match = result.data.find((t) => t.symbol === symbol);
+    if (!match) {
+      return { success: false, error: new Error(`Ticker not found for symbol: ${symbol}`) };
+    }
+
+    this.cache.set(cacheKey, match, TICKER_CACHE_TTL_MS);
+    return { success: true, data: match };
   }
 }
 

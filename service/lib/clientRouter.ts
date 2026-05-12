@@ -1,35 +1,6 @@
 import { FxPrivateRestClient, CryptoPrivateRestClient } from '../../src/rest.js';
 
 /**
- * Determine if symbol is FX or Crypto based on format
- * FX symbols contain underscore (e.g., USD_JPY, EUR_JPY)
- * Crypto symbols are single tokens (e.g., BTC, ETH)
- */
-export function determineClientType(symbol: string): 'fx' | 'crypto' {
-  if (symbol.includes('_')) {
-    return 'fx';
-  }
-  return 'crypto';
-}
-
-/**
- * Get the appropriate REST client based on symbol
- */
-export function getClient(
-  apiKey: string,
-  secret: string,
-  symbol: string,
-): FxPrivateRestClient | CryptoPrivateRestClient {
-  const clientType = determineClientType(symbol);
-
-  if (clientType === 'fx') {
-    return new FxPrivateRestClient(apiKey, secret);
-  } else {
-    return new CryptoPrivateRestClient(apiKey, secret);
-  }
-}
-
-/**
  * FX supported symbols
  */
 export const FX_SYMBOLS = [
@@ -54,7 +25,7 @@ export const FX_SYMBOLS = [
 ];
 
 /**
- * Crypto supported symbols
+ * Crypto supported symbols (base currencies)
  */
 export const CRYPTO_SYMBOLS = [
   'BTC',
@@ -85,6 +56,42 @@ export const CRYPTO_SYMBOLS = [
 ];
 
 /**
+ * Set of crypto base currencies for quick lookup.
+ * Used by determineClientType to distinguish e.g. DOGE_JPY (crypto) from USD_JPY (fx).
+ */
+const CRYPTO_BASES = new Set(CRYPTO_SYMBOLS);
+
+/**
+ * Determine if symbol is FX or Crypto.
+ * Crypto can be bare (BTC) or paired (DOGE_JPY, BTC_JPY).
+ * If the base portion (before _) is a known crypto, it's crypto.
+ */
+export function determineClientType(symbol: string): 'fx' | 'crypto' {
+  const base = symbol.includes('_') ? (symbol.split('_')[0] ?? symbol) : symbol;
+  if (CRYPTO_BASES.has(base)) {
+    return 'crypto';
+  }
+  return 'fx';
+}
+
+/**
+ * Get the appropriate REST client based on symbol
+ */
+export function getClient(
+  apiKey: string,
+  secret: string,
+  symbol: string,
+): FxPrivateRestClient | CryptoPrivateRestClient {
+  const clientType = determineClientType(symbol);
+
+  if (clientType === 'fx') {
+    return new FxPrivateRestClient(apiKey, secret);
+  } else {
+    return new CryptoPrivateRestClient(apiKey, secret);
+  }
+}
+
+/**
  * Validate symbol is supported
  */
 export function isValidSymbol(symbol: string): boolean {
@@ -92,7 +99,9 @@ export function isValidSymbol(symbol: string): boolean {
   if (clientType === 'fx') {
     return FX_SYMBOLS.includes(symbol);
   } else {
-    return CRYPTO_SYMBOLS.includes(symbol);
+    // Accept both bare (DOGE) and paired (DOGE_JPY) forms
+    const base = symbol.includes('_') ? (symbol.split('_')[0] ?? symbol) : symbol;
+    return CRYPTO_BASES.has(base);
   }
 }
 
