@@ -22,7 +22,10 @@ class PublicCache {
 export class PublicRestClient {
   protected cache = new PublicCache();
 
-  constructor(protected baseUrl: string) {}
+  constructor(
+    protected baseUrl: string,
+    protected cacheTtlMs = 1000,
+  ) {}
 
   protected async _get<TResp>(
     path: string,
@@ -60,11 +63,11 @@ export class PublicRestClient {
 
   async getTicker(symbol: string): Promise<T.Result<T.Ticker>> {
     const cacheKey = `ticker:${symbol}`;
-    const cached = this.cache.get<T.Ticker>(cacheKey);
-    if (cached) return { success: true, data: cached };
+    const cached = this.cache.get<T.Result<T.Ticker>>(cacheKey);
+    if (cached) return cached;
 
     const result = await this._get<T.Ticker>(`${V}/ticker`, { symbol }, T.TickerSchema);
-    if (result.success) this.cache.set(cacheKey, result.data, 1000);
+    if (result.success) this.cache.set(cacheKey, result, this.cacheTtlMs);
     return result;
   }
 
@@ -72,8 +75,24 @@ export class PublicRestClient {
     return this._get<T.Ticker[]>(`${V}/ticker`, undefined, z.array(T.TickerSchema));
   }
 
+  async getStatus(): Promise<T.Result<{ status: 'MAINTENANCE' | 'PREOPEN' | 'OPEN' }>> {
+    return this._get(`${V}/status`, undefined, z.object({
+      status: z.enum(['MAINTENANCE', 'PREOPEN', 'OPEN']),
+    }));
+  }
+
+  async getSymbols(): Promise<T.Result<any[]>> {
+    return this._get(`${V}/symbols`);
+  }
+
   async getOrderBook(symbol: string, depth?: string): Promise<T.Result<any>> {
-    return this._get(`${V}/orderbooks`, { symbol, depth });
+    const cacheKey = `orderbook:${symbol}:${depth ?? ''}`;
+    const cached = this.cache.get<T.Result<any>>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this._get(`${V}/orderbooks`, { symbol, depth });
+    if (result.success) this.cache.set(cacheKey, result, this.cacheTtlMs);
+    return result;
   }
 
   async getTrades(symbol: string, count?: string): Promise<T.Result<any[]>> {
@@ -86,13 +105,25 @@ export class PublicRestClient {
 }
 
 export class FxPublicRestClient extends PublicRestClient {
-  constructor(baseUrl = FOREX_PUBLIC_BASE) {
-    super(baseUrl);
+  constructor(baseUrl = FOREX_PUBLIC_BASE, cacheTtlMs = 1000) {
+    super(baseUrl, cacheTtlMs);
+  }
+
+  getSupportedSymbols(): string[] {
+    return [...T.FxSymbols];
   }
 }
 
 export class CryptoPublicRestClient extends PublicRestClient {
-  constructor(baseUrl = PUBLIC_BASE) {
-    super(baseUrl);
+  constructor(baseUrl = PUBLIC_BASE, cacheTtlMs = 1000) {
+    super(baseUrl, cacheTtlMs);
+  }
+
+  getSupportedSymbols(): string[] {
+    return [...T.CryptoSymbols];
+  }
+
+  getSupportedTradingSymbols(): string[] {
+    return [...T.CryptoTradingSymbols];
   }
 }

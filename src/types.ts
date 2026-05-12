@@ -5,7 +5,7 @@ import { z } from 'zod';
  * Recommended by mastering-typescript skill
  */
 export type Result<T, E = Error | z.ZodError> =
-  | { success: true; data: T }
+  | { success: true; data: T; status?: number; responsetime?: string }
   | { success: false; error: E };
 
 // ====== COMMON SCHEMAS & TYPES ======
@@ -56,6 +56,16 @@ export const CryptoSymbols = [
 ] as const;
 export const CryptoSymbolSchema = z.enum(CryptoSymbols);
 export type CryptoSymbol = z.infer<typeof CryptoSymbolSchema>;
+
+export const CryptoTradingSymbols = [
+  'BTC_JPY', 'ETH_JPY', 'BCH_JPY', 'LTC_JPY', 'XRP_JPY', 'XEM_JPY',
+  'XLM_JPY', 'BAT_JPY', 'OMG_JPY', 'XTZ_JPY', 'QTUM_JPY', 'ENJ_JPY',
+  'DOT_JPY', 'ATOM_JPY', 'ADA_JPY', 'MKR_JPY', 'DAI_JPY', 'LINK_JPY',
+  'SOL_JPY', 'MATIC_JPY', 'AAVE_JPY', 'UNI_JPY', 'AVAX_JPY', 'DOGE_JPY',
+  'SHIB_JPY',
+] as const;
+export const CryptoTradingSymbolSchema = z.enum(CryptoTradingSymbols);
+export type CryptoTradingSymbol = z.infer<typeof CryptoTradingSymbolSchema>;
 
 // ====== FX DATA SCHEMAS ======
 
@@ -179,3 +189,30 @@ export const PaginationOptionsSchema = z.object({
   count: z.string().optional(),
 });
 export type PaginationOptions = z.infer<typeof PaginationOptionsSchema>;
+
+export type FxOrderReq = {
+  symbol: string;
+  side: Side;
+  executionType: ExecType;
+  size: string;
+  limitPrice?: string;
+  stopPrice?: string;
+  oco?: {
+    limitPrice: string;
+    stopPrice: string;
+  };
+  clientOrderId?: string;
+  expireDate?: string;
+  settleType?: SettleType;
+};
+
+export type CryptoOrderReq = {
+  symbol: string;
+  side: Side;
+  executionType: 'MARKET' | 'LIMIT' | 'STOP';
+  size: string;
+  price?: string;
+  losscutPrice?: string;
+  timeInForce?: 'FAS' | 'FAK' | 'FOK' | 'SOK';
+  [key: string]: unknown;
+};

@@ -10,9 +10,31 @@ import WebSocket from 'ws';
 import { buildHeaders } from './auth.js';
 import { wsGate } from './rateLimiter.js';
 
-const WS_BASE = 'wss://forex-api.coin.z.com/ws/private/v1';
+const FX_WS_BASE = 'wss://forex-api.coin.z.com/ws/private/v1';
+const CRYPTO_WS_BASE = 'wss://api.coin.z.com/ws/private/v1';
 const WS_TIMEOUT = 30_000; // 30 seconds
 const PING_INTERVAL = 55_000; // 55 seconds (server pings ~60s)
+
+type PrivateWsTopic =
+  | 'execution'
+  | 'order'
+  | 'position'
+  | 'positionSummary'
+  | 'executionEvents'
+  | 'orderEvents'
+  | 'positionEvents'
+  | 'positionSummaryEvents';
+
+const CHANNEL_BY_TOPIC: Record<PrivateWsTopic, string> = {
+  execution: 'executionEvents',
+  order: 'orderEvents',
+  position: 'positionEvents',
+  positionSummary: 'positionSummaryEvents',
+  executionEvents: 'executionEvents',
+  orderEvents: 'orderEvents',
+  positionEvents: 'positionEvents',
+  positionSummaryEvents: 'positionSummaryEvents',
+};
 
 export class FxPrivateWsAuth {
   constructor(
@@ -75,7 +97,10 @@ export class FxPrivateWsClient {
   private pingTimer: ReturnType<typeof setInterval> | null = null;
   private closed = false;
 
-  constructor(private token: string) {
+  constructor(
+    private token: string,
+    private wsBase: string = FX_WS_BASE,
+  ) {
     if (!token)
       throw new Error('FxPrivateWsClient: token is required. Obtain via FxPrivateWsAuth.create().');
   }
@@ -85,7 +110,7 @@ export class FxPrivateWsClient {
       throw new Error('FxPrivateWsClient: Connection already closed, cannot reconnect.');
     if (this.ws) throw new Error('FxPrivateWsClient: Already connected.');
 
-    this.ws = new WebSocket(`${WS_BASE}/${this.token}`);
+    this.ws = new WebSocket(`${this.wsBase}/${this.token}`);
 
     return new Promise<void>((res, rej) => {
       const timeout = setTimeout(() => {
@@ -148,21 +173,23 @@ export class FxPrivateWsClient {
     });
   }
 
-  async subscribe(topic: 'execution' | 'order' | 'position' | 'positionSummary', symbol?: string) {
+  async subscribe(topic: PrivateWsTopic, symbol?: string, option?: 'PERIODIC') {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       throw new Error('FxPrivateWsClient: Not connected.');
     }
     await wsGate.wait();
-    const payload: { command: string; channel: string; symbol?: string } = {
+    const payload: { command: string; channel: string; symbol?: string; option?: string } = {
       command: 'subscribe',
-      channel: topic,
+      channel: CHANNEL_BY_TOPIC[topic],
     };
     if (symbol) payload.symbol = symbol;
+    if (option) payload.option = option;
+    if (payload.channel === 'positionSummaryEvents' && !payload.option) payload.option = 'PERIODIC';
     this.ws.send(JSON.stringify(payload));
   }
 
   async unsubscribe(
-    topic: 'execution' | 'order' | 'position' | 'positionSummary',
+    topic: PrivateWsTopic,
     symbol?: string,
   ) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
@@ -171,7 +198,7 @@ export class FxPrivateWsClient {
     await wsGate.wait();
     const payload: { command: string; channel: string; symbol?: string } = {
       command: 'unsubscribe',
-      channel: topic,
+      channel: CHANNEL_BY_TOPIC[topic],
     };
     if (symbol) payload.symbol = symbol;
     this.ws.send(JSON.stringify(payload));
@@ -202,8 +229,8 @@ export class CryptoPrivateWsAuth extends FxPrivateWsAuth {
 export class CryptoPrivateWsClient extends FxPrivateWsClient {
   constructor(
     token: string,
-    _cryptoWsBase = 'wss://api.coin.z.com/ws/private/v1',
+    cryptoWsBase = CRYPTO_WS_BASE,
   ) {
-    super(token);
+    super(token, cryptoWsBase);
   }
 }

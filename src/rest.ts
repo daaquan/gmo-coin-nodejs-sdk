@@ -3,12 +3,35 @@ import { getGate, postGate } from './rateLimiter.js';
 import { auditLogger } from './audit.js';
 import { metricsCollector } from './metrics.js';
 import * as T from './types.js';
+import { validateCryptoOrder } from './validation.js';
 import { z } from 'zod';
 
 const FOREX_BASE = 'https://forex-api.coin.z.com/private' as const;
 const CRYPTO_BASE = 'https://api.coin.z.com/private' as const;
 const V = '/v1' as const;
 const FETCH_TIMEOUT = 30_000;
+
+function normalizeFxQuery<T extends Record<string, string | number | undefined> | undefined>(q: T): T {
+  if (q?.offset || q?.limit || q?.pageSize) {
+    console.warn('FX API does not support offset/limit pagination; use prevId/count instead.');
+  }
+  return q;
+}
+
+function normalizeCryptoQuery(
+  q?: Record<string, string | number | undefined>,
+): Record<string, string | number | undefined> | undefined {
+  if (!q) return undefined;
+  const { limit, prevId, count, ...rest } = q;
+  if (prevId) {
+    console.warn('Crypto API does not support cursor-based pagination; use limit/pageSize instead.');
+  }
+  const normalized: Record<string, string | number | undefined> = { ...rest };
+  if (limit != null) normalized.pageSize = limit;
+  else if (q.pageSize != null) normalized.pageSize = q.pageSize;
+  if (count != null && normalized.pageSize == null) normalized.count = count;
+  return normalized;
+}
 
 async function parseJson(res: Response): Promise<Record<string, unknown> | null> {
   try {
@@ -42,7 +65,7 @@ abstract class BaseRestClient {
     method: 'GET' | 'POST' | 'DELETE' | 'PUT',
     path: string,
     options: {
-      qs?: Record<string, string | undefined>;
+      qs?: Record<string, string | number | undefined>;
       body?: unknown;
       schema?: z.ZodSchema<any>;
     } = {},
@@ -54,7 +77,7 @@ abstract class BaseRestClient {
     const url = new URL(this.baseUrl + path);
     if (qs) {
       for (const [k, v] of Object.entries(qs)) {
-        if (v != null) url.searchParams.set(k, v);
+        if (v != null) url.searchParams.set(k, String(v));
       }
     }
 
@@ -93,10 +116,21 @@ abstract class BaseRestClient {
         const envelope = T.ApiEnvelopeSchema(schema);
         const parsed = envelope.safeParse(json);
         if (!parsed.success) return { success: false, error: parsed.error };
-        return { success: true, data: parsed.data.data as TResp };
+        return {
+          success: true,
+          data: parsed.data.data as TResp,
+          status: parsed.data.status,
+          responsetime: parsed.data.responsetime,
+        };
       }
 
-      return { success: true, data: json.data as TResp };
+      const result: T.Result<TResp> = {
+        success: true,
+        data: json.data as TResp,
+      };
+      if (typeof json.status === 'number') result.status = json.status;
+      if (typeof json.responsetime === 'string') result.responsetime = json.responsetime;
+      return result;
     } catch (e) {
       const error = e instanceof Error ? e : new Error(String(e));
       return { success: false, error };
@@ -117,13 +151,17 @@ export class FxPrivateRestClient extends BaseRestClient {
 
   async getActiveOrders(q?: { symbol?: string } & T.PaginationOptions) {
     // FX API returns { list: [...] } inside data envelope.
-    const schema = z.object({ list: z.array(T.FxActiveOrderSchema) });
+    const schema = z.union([
+      z.object({ list: z.array(T.FxActiveOrderSchema) }),
+      z.array(T.FxActiveOrderSchema),
+    ]);
     const opts: any = { schema };
-    if (q) opts.qs = q;
+    if (q) opts.qs = normalizeFxQuery(q);
 
-    const res = await this._request<{ list: T.FxActiveOrder[] }>('GET', `${V}/activeOrders`, opts);
+    const res = await this._request<{ list: T.FxActiveOrder[] } | T.FxActiveOrder[]>('GET', `${V}/activeOrders`, opts);
     if (!res.success) return res;
-    return { success: true, data: res.data.list } as T.Result<T.FxActiveOrder[]>;
+    const data = Array.isArray(res.data) ? res.data : res.data.list;
+    return { success: true, data, status: res.status, responsetime: res.responsetime } as T.Result<T.FxActiveOrder[]>;
   }
 
   getExecutions(q: { executionId: string }) {
@@ -136,7 +174,7 @@ export class FxPrivateRestClient extends BaseRestClient {
 
   getOpenPositions(q?: { symbol?: string } & T.PaginationOptions) {
     const opts: any = {};
-    if (q) opts.qs = q;
+    if (q) opts.qs = normalizeFxQuery(q);
     return this._request<any[]>('GET', `${V}/openPositions`, opts);
   }
 
@@ -144,7 +182,7 @@ export class FxPrivateRestClient extends BaseRestClient {
     // FX API returns { list: [...] } inside data envelope.
     const schema = z.object({ list: z.array(T.FxPositionSummarySchema) });
     const opts: any = { schema };
-    if (q) opts.qs = q;
+    if (q) opts.qs = normalizeFxQuery(q);
 
     const res = await this._request<{ list: T.FxPositionSummary[] }>(
       'GET',
@@ -209,25 +247,31 @@ export class CryptoPrivateRestClient extends BaseRestClient {
 
   getOpenPositions(q?: { symbol?: string } & T.PaginationOptions) {
     const opts: any = { schema: z.array(T.CryptoOpenPositionSchema) };
-    if (q) opts.qs = q;
+    if (q) opts.qs = normalizeCryptoQuery(q);
     return this._request<T.CryptoOpenPosition[]>('GET', `${V}/openPositions`, opts);
   }
 
   getActiveOrders(q?: { symbol?: string } & T.PaginationOptions) {
     const opts: any = { schema: z.array(T.CryptoActiveOrderSchema) };
-    if (q) opts.qs = q;
+    if (q) opts.qs = normalizeCryptoQuery(q);
     return this._request<T.CryptoActiveOrder[]>('GET', `${V}/activeOrders`, opts);
   }
 
-  getExecutions(q?: Record<string, string | undefined>) {
+  getOrders(q?: Record<string, string | number | undefined>) {
     const opts: any = {};
     if (q) opts.qs = q;
+    return this._request<any[]>('GET', `${V}/orders`, opts);
+  }
+
+  getExecutions(q?: Record<string, string | number | undefined>) {
+    const opts: any = {};
+    if (q) opts.qs = normalizeCryptoQuery(q);
     return this._request<any[]>('GET', `${V}/executions`, opts);
   }
 
-  getLatestExecutions(q?: Record<string, string | undefined>) {
+  getLatestExecutions(q?: Record<string, string | number | undefined>) {
     const opts: any = {};
-    if (q) opts.qs = q;
+    if (q) opts.qs = normalizeCryptoQuery(q);
     return this._request<any[]>('GET', `${V}/latestExecutions`, opts);
   }
 
@@ -238,23 +282,25 @@ export class CryptoPrivateRestClient extends BaseRestClient {
   }
 
   placeOrder(body: unknown) {
-    return this._request<any>('POST', `${V}/orders`, { body });
+    validateCryptoOrder(body);
+    return this._request<any>('POST', `${V}/order`, { body });
   }
 
   placeOcoOrder(body: unknown) {
-    return this._request<any>('POST', `${V}/orders`, { body });
+    return this.placeOrder(body);
   }
 
   placeIfdOrder(body: unknown) {
-    return this._request<any>('POST', `${V}/orders`, { body });
+    return this.placeOrder(body);
   }
 
   placeIfdocoOrder(body: unknown) {
-    return this._request<any>('POST', `${V}/orders`, { body });
+    return this.placeOrder(body);
   }
 
-  cancelOrder(orderId: string) {
-    return this._request<any>('DELETE', `${V}/orders/${orderId}`);
+  cancelOrder(order: string | number | { orderId: string | number }) {
+    const body = typeof order === 'object' ? order : { orderId: order };
+    return this._request<any>('POST', `${V}/cancelOrder`, { body });
   }
 
   changeOrder(body: unknown) {
@@ -273,12 +319,25 @@ export class CryptoPrivateRestClient extends BaseRestClient {
     return this._request<any>('POST', `${V}/changeOrder`, { body });
   }
 
-  cancelOrders(body: { rootOrderIds: string[] }) {
-    return this._request<any>('POST', `${V}/cancelOrders`, { body });
+  cancelOrders(body: { orderIds?: Array<string | number>; rootOrderIds?: Array<string | number> }) {
+    const requestBody = body.orderIds ? body : { orderIds: body.rootOrderIds ?? [] };
+    return this._request<any>('POST', `${V}/cancelOrders`, { body: requestBody });
   }
 
   cancelBulk(body: unknown) {
     return this._request<any>('POST', `${V}/cancelBulkOrder`, { body });
+  }
+
+  closeOrder(body: unknown) {
+    return this._request<any>('POST', `${V}/closeOrder`, { body });
+  }
+
+  closeBulkOrder(body: unknown) {
+    return this._request<any>('POST', `${V}/closeBulkOrder`, { body });
+  }
+
+  changeLosscutPrice(body: { positionId: number; losscutPrice: string }) {
+    return this._request<any>('POST', `${V}/changeLosscutPrice`, { body });
   }
 
   async closePosition(symbol: string, size: string, side?: 'BUY' | 'SELL') {
@@ -294,5 +353,9 @@ export class CryptoPrivateRestClient extends BaseRestClient {
 
   getSupportedSymbols(): string[] {
     return [...T.CryptoSymbols];
+  }
+
+  getSupportedTradingSymbols(): string[] {
+    return [...T.CryptoTradingSymbols];
   }
 }

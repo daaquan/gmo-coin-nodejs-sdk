@@ -128,7 +128,7 @@ export class FxPublicWsClient {
    *
    * @param symbol Trading symbol (e.g., "USD_JPY", "EUR_JPY")
    */
-  async subscribe(symbol: string): Promise<void> {
+  async subscribe(symbol: string, channel: 'ticker' | 'orderbooks' | 'trades' = 'ticker'): Promise<void> {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       throw new Error('FxPublicWsClient: Not connected.');
     }
@@ -137,7 +137,7 @@ export class FxPublicWsClient {
 
     const payload = {
       command: 'subscribe',
-      channel: 'ticker',
+      channel,
       symbol,
     };
 
@@ -150,7 +150,7 @@ export class FxPublicWsClient {
    *
    * @param symbol Trading symbol (e.g., "USD_JPY", "EUR_JPY")
    */
-  async unsubscribe(symbol: string): Promise<void> {
+  async unsubscribe(symbol: string, channel: 'ticker' | 'orderbooks' | 'trades' = 'ticker'): Promise<void> {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       throw new Error('FxPublicWsClient: Not connected.');
     }
@@ -159,7 +159,7 @@ export class FxPublicWsClient {
 
     const payload = {
       command: 'unsubscribe',
-      channel: 'ticker',
+      channel,
       symbol,
     };
 
@@ -184,6 +184,18 @@ export class FxPublicWsClient {
       }
       this.ws = null;
     }
+  }
+
+  subscribeTicker(symbol: string): Promise<void> {
+    return this.subscribe(symbol, 'ticker');
+  }
+
+  subscribeOrderBooks(symbol: string): Promise<void> {
+    return this.subscribe(symbol, 'orderbooks');
+  }
+
+  subscribeTrades(symbol: string): Promise<void> {
+    return this.subscribe(symbol, 'trades');
   }
 }
 

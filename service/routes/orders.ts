@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { FxPrivateRestClient, CryptoPrivateRestClient } from '../../src/rest.js';
-import { validateFxOrder, validateFxIfoOrder } from '../../src/validation.js';
+import { validateFxOrder, validateFxIfoOrder, validateCryptoOrder } from '../../src/validation.js';
 import { gmoPostGate, gmoGetGate } from '../lib/rateLimiter.js';
 import { getFxCreds, getCryptoCreds, tenantFromReq } from '../lib/tenants.js';
 import { determineClientType } from '../lib/clientRouter.js';
@@ -56,10 +56,10 @@ export function registerOrderRoutes(app: FastifyInstance) {
       const validated = validateFxOrder(body);
       result = await fx.placeOrder(validated);
     } else {
-      // Crypto order validation is not yet strict in this repo; keep pass-through.
       const { apiKey, secret } = getCryptoCreds(tenant);
       const crypto = new CryptoPrivateRestClient(apiKey, secret);
-      result = await crypto.placeOrder(body);
+      const validated = validateCryptoOrder(body);
+      result = await crypto.placeOrder(validated);
     }
 
     // handleResult sends. We also mirror the envelope to the idempotency cache.
@@ -143,14 +143,19 @@ export function registerOrderRoutes(app: FastifyInstance) {
     return handleResult(reply, result);
   });
 
-  // POST /v1/closeOrder (FX only)
+  // POST /v1/closeOrder
   app.post('/v1/closeOrder', { preHandler: [gmoPostGate] }, async (req, reply) => {
     const tenant = tenantFromReq(req.headers, req.body as any);
     const body = req.body as any;
-
-    const { apiKey, secret } = getFxCreds(tenant);
-    const fx = new FxPrivateRestClient(apiKey, secret);
-    const result = await fx.closeOrder(body);
+    const clientType = determineClientType(body.symbol || 'USD_JPY');
+    let result: any;
+    if (clientType === 'fx') {
+      const { apiKey, secret } = getFxCreds(tenant);
+      result = await new FxPrivateRestClient(apiKey, secret).closeOrder(body);
+    } else {
+      const { apiKey, secret } = getCryptoCreds(tenant);
+      result = await new CryptoPrivateRestClient(apiKey, secret).closeOrder(body);
+    }
     return handleResult(reply, result);
   });
 }

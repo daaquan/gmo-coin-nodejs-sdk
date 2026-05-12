@@ -60,12 +60,94 @@ export const FxIfoOrderReqSchema = z
   .strict();
 
 // Aliases for compatibility
-export const FxIfdOrderReqSchema = z.any();
-export const FxCloseOrderReqSchema = z.any();
-export const CryptoOrderReqSchema = z.any();
-export const TickerRequestSchema = z.any();
-export const OrderBookRequestSchema = z.any();
-export const KlinesRequestSchema = z.any();
+export const FxIfdOrderReqSchema = z
+  .object({
+    symbol: T.FxSymbolSchema,
+    side: T.SideSchema,
+    size: T.SizeSchema,
+    firstExecutionType: z.enum(['LIMIT', 'STOP']),
+    firstPrice: T.PriceSchema.optional(),
+    firstStopPrice: T.PriceSchema.optional(),
+    secondExecutionType: z.enum(['LIMIT', 'STOP']),
+    secondPrice: T.PriceSchema.optional(),
+    secondStopPrice: T.PriceSchema.optional(),
+  })
+  .passthrough()
+  .superRefine((data, ctx) => {
+    if (data.firstExecutionType === 'LIMIT' && !data.firstPrice) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['firstPrice'], message: 'Missing firstPrice' });
+    }
+    if (data.firstExecutionType === 'STOP' && !data.firstStopPrice) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['firstStopPrice'], message: 'Missing firstStopPrice' });
+    }
+    if (data.secondExecutionType === 'LIMIT' && !data.secondPrice) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['secondPrice'], message: 'Missing secondPrice' });
+    }
+    if (data.secondExecutionType === 'STOP' && !data.secondStopPrice) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['secondStopPrice'], message: 'Missing secondStopPrice' });
+    }
+  });
+export const FxCloseOrderReqSchema = z
+  .object({
+    symbol: T.FxSymbolSchema,
+    side: T.SideSchema,
+    executionType: z.enum(['MARKET', 'LIMIT', 'STOP']),
+    size: T.SizeSchema.optional(),
+    limitPrice: T.PriceSchema.optional(),
+    stopPrice: T.PriceSchema.optional(),
+    settlePosition: z.array(z.object({
+      positionId: z.union([z.string().min(1), z.number()]),
+      size: T.SizeSchema,
+    })).min(1),
+  })
+  .passthrough();
+const CryptoOrderSymbolSchema = z.union([T.CryptoSymbolSchema, T.CryptoTradingSymbolSchema]);
+
+export const CryptoOrderReqSchema = z
+  .object({
+    symbol: CryptoOrderSymbolSchema,
+    side: T.SideSchema,
+    executionType: z.enum(['MARKET', 'LIMIT', 'STOP']),
+    size: T.SizeSchema,
+    price: T.PriceSchema.optional(),
+    losscutPrice: T.PriceSchema.optional(),
+    timeInForce: z.enum(['FAS', 'FAK', 'FOK', 'SOK']).optional(),
+  })
+  .passthrough()
+  .superRefine((data, ctx) => {
+    if (data.executionType === 'LIMIT' && !data.price) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['price'],
+        message: 'Missing required price field: LIMIT orders require price field',
+      });
+    }
+    if (data.executionType === 'STOP' && !data.losscutPrice) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['losscutPrice'],
+        message: 'Missing required losscutPrice field: STOP orders require losscutPrice field',
+      });
+    }
+  });
+export const TickerRequestSchema = z.object({
+  symbol: z.string().min(1).max(20),
+});
+export const OrderBookRequestSchema = z.object({
+  symbol: z.string().min(1).max(20),
+  depth: z.string().regex(/^\d+$/).optional(),
+});
+export const KlinesRequestSchema = z.object({
+  symbol: z.string().min(1).max(20),
+  interval: z.enum([
+    '1m', '5m', '15m', '30m', '1h', '4h', '8h', '12h', '1d', '1w', '1M',
+    '1min', '5min', '10min', '15min', '30min', '1hour', '4hour', '8hour',
+    '12hour', '1day', '1week', '1month',
+  ]),
+  date: z.string().optional(),
+  count: z.string().regex(/^\d+$/).optional(),
+  before: z.string().regex(/^\d+$/).optional(),
+});
 
 // ====== VALIDATION FUNCTIONS ======
 
@@ -90,7 +172,7 @@ export function validateFxIfoOrder(data: unknown) {
 export const validateCryptoOrder = (data: unknown) => {
   const res = CryptoOrderReqSchema.safeParse(data);
   if (res.success) return res.data;
-  throw res.error;
+  throw new Error(res.error.issues[0]?.message ?? res.error.message);
 };
 
 export const validateFxOrderSafe = (data: unknown) => {
